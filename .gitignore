@@ -1,0 +1,39 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.pyo
+
+# Jupyter notebooks checkpoint
+.ipynb_checkpoints
+
+# IDE/editor settings
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+
+# Environment
+.env
+.venv/
+env/
+venv/
+
+# Data files
+data/
+results/
+*.csv
+*.png
+
+# Dependency lock files (if manually managed)
+poetry.lock
+Pipfile.lock
+
+# Compiled
+*.so
+*.dll
+
+# Logs & temp
+*.log
+*.tmp

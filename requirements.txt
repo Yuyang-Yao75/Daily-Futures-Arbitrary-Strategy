@@ -1,0 +1,6 @@
+matplotlib==3.10.3
+numpy==2.3.0
+pandas==2.3.0
+SQLAlchemy==2.0.39
+sympy==1.13.3
+tqdm==4.67.1
