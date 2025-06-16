@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 # from WindPy import w
 from datetime import datetime
 import talib
-from sympy.physics.units import current
+# from sympy.physics.units import current
 
 
 ###################### 基差 ######################
@@ -23,7 +23,7 @@ from sympy.physics.units import current
 
 
 ###################### 通道 ######################
-
+#通道型布林带信号：最新价突破布林带上界发出做空信号，突破下界发出做多信号，最新价由上到下突破中轨，则平空；最新价由下到上突破中轨，则平多
 def bollinger_r(price, window, num_std_upper, num_std_lower):
     """
     布林带信号生成
@@ -73,10 +73,9 @@ def bollinger_r(price, window, num_std_upper, num_std_lower):
                 current_position = 1
 
     return signal
-#
-#
+
 # ###################### 动量 ######################
-#
+#动量型布林带信号：最新价突破布林带上界发出做多信号，突破下界发出做空信号，最新价由上到下突破中轨，则平多；最新价由下到上突破中轨，则平空
 def bollinger_MOM(price, window, num_std_upper, num_std_lower):
     """
     动量布林带信号生成
@@ -126,8 +125,8 @@ def bollinger_MOM(price, window, num_std_upper, num_std_lower):
                 current_position = -1
 
     return signal
-#
-#
+
+#动量型 ROC 信号：过去 x 天上涨则发出做多信号，过去 x 天下跌则发出做空信号
 def roc_MOM(price, window):
     """
     ROC 动量信号生成
@@ -161,8 +160,8 @@ def roc_MOM(price, window):
             signal.iloc[i] = signal.iloc[i - 1] if i > window else 0
 
     return signal
-#
-#
+
+#动量型连续上涨天数信号：连续上涨 x 天则发出做多信号，连续下跌 x 天则发出做空信号，过去 x 天涨跌天数相同则平仓
 def continuous_signal(price, window):
     """
     计算连续上涨天数的信号
@@ -213,9 +212,9 @@ def continuous_signal(price, window):
             current_position = -1
 
     return signal
-#
-#
+
 # ###################### 均线 ######################
+
 def calculate_ma_talib(price, window, ma_type):
     """支持多种均线类型的统一接口"""
     ma_type = ma_type.upper()
@@ -232,8 +231,8 @@ def calculate_ma_talib(price, window, ma_type):
         raise ValueError(f"不支持的均线类型: {ma_type}")
 
     return calc_map[ma_type]()
-#
-#
+
+#均线型若干指标的信号：短均线上穿长均线（或下穿）则发出做多信号（或做空信号）
 def generate_ma_signal(price, short_window, long_window, ma_type, fastlimit=0.1, slowlimit=0.6, vfactor=1):
     """
     改进版均线交叉信号生成
@@ -241,7 +240,7 @@ def generate_ma_signal(price, short_window, long_window, ma_type, fastlimit=0.1,
     :param short_window: int, 短期参数(对于Hilbert变换表示偏移周期)
     :param long_window: int, 长期参数(仅传统均线使用)
     :param ma_type: str, 均线类型 ("DoubleMA", "WMA", "EXPWMA", "Hilbert_Transform",
-                   "Kaufman", "MESA_Adaptive", "MidPoint", "TRIX")
+                "Kaufman", "MESA_Adaptive", "MidPoint", "TRIX")
     """
     # Hilbert变换特殊处理
     if ma_type == "Hilbert_Transform":
@@ -286,14 +285,14 @@ def generate_ma_signal(price, short_window, long_window, ma_type, fastlimit=0.1,
 
     return signal
 
-
+#均线型 MACD 均线信号：DIF、DEA、MACD 均为正则做多，DIF、DEA、MACD 均为负则做空
 def macd_signal(price, short_window=12, long_window=26, signalperiod=9):
     """
     MACD三线策略信号生成
     :param price: 价格序列
     :param short_window: 快线周期(默认12)
     :param long_window: 慢线周期(默认26)
-    :param ma_type: 信号周期(默认9)
+    :param signalperiod: 信号周期(默认9)
     :return: 交易信号（1: 做多, -1: 做空, 0: 无操作）
     """
     # 计算MACD指标
@@ -330,9 +329,9 @@ def macd_signal(price, short_window=12, long_window=26, signalperiod=9):
 
     return signal
 
-#
-#
+
 # ###################### 反转 ######################
+#反转型 ROC 信号：过去x天上涨则发出做空信号，过去x天下跌则发出做多信号
 def roc_r(price, window):
     """
     计算 ROC 指标的信号，过去x天上涨则发出做空信号，过去x天下跌则发出做多信号
@@ -364,7 +363,7 @@ def roc_r(price, window):
 
     return signal
 
-
+#反转型 RSI 信号：过去 x 天 RSI 值突破上限则发出做空信号，过去 x 天 RSI 值突破下限则发出做多信号，RSI 值重新回到中轨，则平仓。
 def rsi_r(price, window=14, upper=70, lower=30, middle=50):
     """
     RSI逆向策略信号生成
@@ -410,7 +409,7 @@ def rsi_r(price, window=14, upper=70, lower=30, middle=50):
 
     return signal
 
-
+#反转型 CMO 信号：过去 x 天 CMO 值突破上限则发出做空信号，过去 x 天 CMO 值突破下限则发出做多信号，CMO 值重回中轨则平仓。
 def cmo_r(price, window=14, upper=50, lower=-50, middle=0):
     """
     CMO逆向策略信号生成
@@ -453,8 +452,8 @@ def cmo_r(price, window=14, upper=50, lower=-50, middle=0):
                 position = 1
 
     return signal
-#
-#
+
+#反转型 连续上涨天数 信号：连续上涨 x 天则发出做空信号，连续下跌 x 天则发出做多信号，过去 x 天涨跌天数相同则平仓。
 def continuous_r(price, window):
     """
     计算连续上涨天数的信号
@@ -508,7 +507,7 @@ def continuous_r(price, window):
 
     return signal
 
-
+#反转型 百分位信号：最新价百分位达到历史高点则做空，最新价百分位达到历史低点则做多。
 def quantile_signal(price, window):
     """
     百分位信号生成 (Quantile Signal)
@@ -650,31 +649,31 @@ if __name__ == "__main__":
         signals = calculate_seasonal_signals(monthly_data, start_year, end_year)
         signals[["month", "win_rate", "signal", "weight"]].tail(12).to_csv("season_signal_{}.csv".format(pair), index=False)
     # print(signals.tail(12))
-    # # THS_iFinDLogin('ghyjsxs207', '505933')
-    # # w.start()
+    # THS_iFinDLogin('ghyjsxs207', '505933')
+    # w.start()
     # # 股指数据
     # start_date = "20100101"
     # end_date = "20250216"
-    # # # index_data = THS_HQ('000016.SH,000300.SH,000852.SH,000905.SH', 'close;changeRatio', '', start_date, end_date).data
-    # # # index_data.to_csv("index_data_{}_{}.csv".format(start_date, end_date), index=False)
+    # index_data = THS_HQ('000016.SH,000300.SH,000852.SH,000905.SH', 'close;changeRatio', '', start_date, end_date).data
+    # index_data.to_csv("index_data_{}_{}.csv".format(start_date, end_date), index=False)
     # #
     # # # 基差信号
     # start = "2023-12-14"
     # end = "2025-02-16"
-    # # IC = w.wsd("IC.CFE", "anal_basisannualyield,ltdate_new,open,pct_chg", start, end, "", usedf=True)[1]
-    # # IF = w.wsd("IF.CFE", "anal_basisannualyield,ltdate_new,open,pct_chg", start, end, "", usedf=True)[1]
-    # # IH = w.wsd("IH.CFE", "anal_basisannualyield,ltdate_new,open,pct_chg", start, end, "", usedf=True)[1]
-    # # IM = w.wsd("IM.CFE", "anal_basisannualyield,ltdate_new,open,pct_chg", start, end, "", usedf=True)[1]
-    # # IC.columns = ['IC_' + col for col in IC.columns]
-    # # IF.columns = ['IF_' + col for col in IF.columns]
-    # # IH.columns = ['IH_' + col for col in IH.columns]
-    # # IM.columns = ['IM_' + col for col in IM.columns]
-    # # df_futures = pd.concat([IC, IF, IH, IM], axis=1)
-    # # df_futures["IFIH"] = df_futures["IF_ANAL_BASISANNUALYIELD"] - df_futures["IH_ANAL_BASISANNUALYIELD"]
-    # # df_futures["ICIF"] = df_futures["IC_ANAL_BASISANNUALYIELD"] - df_futures["IF_ANAL_BASISANNUALYIELD"]
-    # # df_futures["IMIC"] = df_futures["IM_ANAL_BASISANNUALYIELD"] - df_futures["IC_ANAL_BASISANNUALYIELD"]
-    # # df_futures["IMIH"] = df_futures["IM_ANAL_BASISANNUALYIELD"] - df_futures["IH_ANAL_BASISANNUALYIELD"]
-    # # df_futures.to_csv("futures_data_{}_{}.csv".format(start, end), index=True)
+    # IC = w.wsd("IC.CFE", "anal_basisannualyield,ltdate_new,open,pct_chg", start, end, "", usedf=True)[1]
+    # IF = w.wsd("IF.CFE", "anal_basisannualyield,ltdate_new,open,pct_chg", start, end, "", usedf=True)[1]
+    # IH = w.wsd("IH.CFE", "anal_basisannualyield,ltdate_new,open,pct_chg", start, end, "", usedf=True)[1]
+    # IM = w.wsd("IM.CFE", "anal_basisannualyield,ltdate_new,open,pct_chg", start, end, "", usedf=True)[1]
+    # IC.columns = ['IC_' + col for col in IC.columns]
+    # IF.columns = ['IF_' + col for col in IF.columns]
+    # IH.columns = ['IH_' + col for col in IH.columns]
+    # IM.columns = ['IM_' + col for col in IM.columns]
+    # df_futures = pd.concat([IC, IF, IH, IM], axis=1)
+    # df_futures["IFIH"] = df_futures["IF_ANAL_BASISANNUALYIELD"] - df_futures["IH_ANAL_BASISANNUALYIELD"]
+    # df_futures["ICIF"] = df_futures["IC_ANAL_BASISANNUALYIELD"] - df_futures["IF_ANAL_BASISANNUALYIELD"]
+    # df_futures["IMIC"] = df_futures["IM_ANAL_BASISANNUALYIELD"] - df_futures["IC_ANAL_BASISANNUALYIELD"]
+    # df_futures["IMIH"] = df_futures["IM_ANAL_BASISANNUALYIELD"] - df_futures["IH_ANAL_BASISANNUALYIELD"]
+    # df_futures.to_csv("futures_data_{}_{}.csv".format(start, end), index=True)
     #
     # df_futures = pd.read_csv("futures_data_{}_{}.csv".format(start, end), index_col=0)
     # df_futures.index = pd.to_datetime(df_futures.index)
@@ -696,10 +695,10 @@ if __name__ == "__main__":
     # for pair in pairs:
     #     # 计算多头标的权重
     #     df_vol["{}_{}_weight".format(pair, pair[:2])] = 2 * df_vol["{}_60d_volatility".format(pair[2:])] / (
-    #                 df_vol["{}_60d_volatility".format(pair[:2])] + df_vol["{}_60d_volatility".format(pair[2:])])
+    #             df_vol["{}_60d_volatility".format(pair[:2])] + df_vol["{}_60d_volatility".format(pair[2:])])
     #     # 计算空头标的权重
     #     df_vol["{}_{}_weight".format(pair, pair[2:])] = 2 * df_vol["{}_60d_volatility".format(pair[:2])] / (
-    #                 df_vol["{}_60d_volatility".format(pair[:2])] + df_vol["{}_60d_volatility".format(pair[2:])])
+    #             df_vol["{}_60d_volatility".format(pair[:2])] + df_vol["{}_60d_volatility".format(pair[2:])])
     #     # 计算收益率60日相关性
     #     df_vol["{}_60d_corr".format(pair)] = df_vol["{}".format(pair[:2])].rolling(window=60).corr(df_vol["{}".format(pair[2:])])
     #
@@ -707,21 +706,21 @@ if __name__ == "__main__":
     # for pair in pairs:
     #     # 计算基差信号
     #     df_basis_signal["signal_{}".format(pair)] = (df_basis_signal["{}_{}_weight".format(pair, pair[:2])] * \
-    #         df_basis_signal["{}_ANAL_BASISANNUALYIELD".format(pair[:2])] - df_basis_signal["{}_{}_weight".format(pair, pair[2:])] * \
-    #         df_basis_signal["{}_ANAL_BASISANNUALYIELD".format(pair[2:])]) / 100
+    #                                                  df_basis_signal["{}_ANAL_BASISANNUALYIELD".format(pair[:2])] - df_basis_signal["{}_{}_weight".format(pair, pair[2:])] * \
+    #                                                  df_basis_signal["{}_ANAL_BASISANNUALYIELD".format(pair[2:])]) / 100
     #     # 如果收益率60日相关性小于0.7，则空仓
     #     df_basis_signal["signal_{}_position".format(pair)] = np.where(
     #         df_basis_signal["{}_60d_corr".format(pair)] >= 0.7,
-    #     -df_basis_signal["signal_{}".format(pair)] * 10,
-    #     0)
+    #         -df_basis_signal["signal_{}".format(pair)] * 10,
+    #         0)
     #
     # df_basis_signal["date"] = pd.to_datetime(df_basis_signal.index)
     # df_basis_signal = df_basis_signal[['date', 'signal_IFIH', 'signal_IFIH_position',
-    #    'signal_ICIF', 'signal_ICIF_position', 'signal_IMIC',
-    #    'signal_IMIC_position', 'signal_IMIH', 'signal_IMIH_position']]
+    #                                    'signal_ICIF', 'signal_ICIF_position', 'signal_IMIC',
+    #                                    'signal_IMIC_position', 'signal_IMIH', 'signal_IMIH_position']]
     #
     # df_basis_signal.to_csv("basis_signal.csv", index=False)
-
+    #
     # df_futures["IFIH_futures"] = (df_futures["IF_PCT_CHG"] - df_futures["IH_PCT_CHG"]) / 100
     # df_futures["ICIF_futures"] = (df_futures["IC_PCT_CHG"] - df_futures["IF_PCT_CHG"]) / 100
     # df_futures["IMIC_futures"] = (df_futures["IM_PCT_CHG"] - df_futures["IC_PCT_CHG"]) / 100
@@ -735,10 +734,10 @@ if __name__ == "__main__":
     # df_futures_nv = df_futures[["IFIH_futures_nv", "ICIF_futures_nv", "IMIC_futures_nv", "IMIH_futures_nv"]]
     # df_futures_nv = df_futures_nv.div(df_futures_nv.iloc[0])
     #
-    # # df_futures_nv.index = pd.to_datetime(df_futures.index)
+    # df_futures_nv.index = pd.to_datetime(df_futures.index)
     # # 股指期货多空组合的净值
-    # # df_futures_nv.to_csv("futures_nv_data_{}_{}.csv".format(start, end), index=True)
-    # # df_index_return["IF_60_std"]
+    # df_futures_nv.to_csv("futures_nv_data_{}_{}.csv".format(start, end), index=True)
+    # df_index_return["IF_60_std"]
     #
     # df_index_return["IFIH_index"] = df_index_return["000300.SH"] - df_index_return["000016.SH"]
     # df_index_return["ICIF_index"] = df_index_return["000905.SH"] - df_index_return["000300.SH"]
@@ -752,11 +751,11 @@ if __name__ == "__main__":
     #
     # df_index_nv = df_index_return[["IFIH_index_nv", "ICIF_index_nv", "IMIC_index_nv", "IMIH_index_nv"]]
     # df_index_nv = df_index_nv.div(df_index_nv.iloc[0])
-    # # df_index_nv.index = pd.to_datetime(df_index_return.index)
-    # # df_index_nv.to_csv("index_nv_data_{}_{}.csv".format(start_date, end_date), index=True)
+    # df_index_nv.index = pd.to_datetime(df_index_return.index)
+    # df_index_nv.to_csv("index_nv_data_{}_{}.csv".format(start_date, end_date), index=True)
     #
-
-
+    #
+    #
     # plt.figure(figsize=(12, 6))  # 设置图表大小
     # for col in df_index_nv.columns:
     #     plt.plot(df_index_nv.index, df_index_nv[col], label=col)  # 为每列画线
