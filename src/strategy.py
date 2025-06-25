@@ -641,13 +641,13 @@ if __name__ == "__main__":
 
     pairs = ["IFIH", "ICIF", "IMIC", "IMIH"]
     for pair in pairs:
-        daily_data = pd.read_csv("{}_signal.csv".format(pair), usecols=['date', 'open', 'high', 'low', 'close'])
+        daily_data = pd.read_csv("../data/{}_signal.csv".format(pair), usecols=['date', 'open', 'high', 'low', 'close'])
         monthly_data = aggregate_to_monthly_price_change(daily_data)
         # 生成信号
         start_year = 2010  # 从2010年开始生成信号
         end_year = 2024  # 到2023年结束
         signals = calculate_seasonal_signals(monthly_data, start_year, end_year)
-        signals[["month", "win_rate", "signal", "weight"]].tail(12).to_csv("season_signal_{}.csv".format(pair), index=False)
+        signals[["month", "win_rate", "signal", "weight"]].tail(12).to_csv("../tests/season_signal_{}.csv".format(pair), index=False)
     # print(signals.tail(12))
     # THS_iFinDLogin('ghyjsxs207', '505933')
     # w.start()

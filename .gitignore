@@ -23,6 +23,7 @@ venv/
 # Data files
 data/
 results/
+tests/
 *.csv
 *.png
 
