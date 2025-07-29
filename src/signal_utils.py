@@ -1,28 +1,6 @@
-# -*- coding: utf-8 -*-
-
-"""
-@Time: 2024/12/25 14:14
-
-@Author: Dayuan Shen
-
-@File: strategy.py
-"""
-
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-# from iFinDPy import *
-# from WindPy import w
-from datetime import datetime
 import talib
-# from sympy.physics.units import current
 
-
-###################### 基差 ######################
-
-
-
-###################### 通道 ######################
 #通道型布林带信号：最新价突破布林带上界发出做空信号，突破下界发出做多信号，最新价由上到下突破中轨，则平空；最新价由下到上突破中轨，则平多
 def bollinger_r(price, window, num_std_upper, num_std_lower):
     """
@@ -249,8 +227,8 @@ def generate_ma_signal(price, short_window, long_window, ma_type, fastlimit=0.1,
     elif ma_type == "MESA_Adaptive":
         short_ma, long_ma = talib.MAMA(price, fastlimit, slowlimit)
     elif ma_type == "TRIX":
-        short_ma = talib.TRIX(price, short_window)
-        long_ma = talib.TRIX(price, long_window)
+        short_ma = talib.T3(price, short_window, vfactor)
+        long_ma = talib.T3(price, long_window, vfactor)
     else:
         short_ma = calculate_ma_talib(price, short_window, ma_type)
         long_ma = calculate_ma_talib(price, long_window, ma_type)
@@ -541,230 +519,44 @@ def quantile_signal(price, window):
 
     return signal
 
-######################月份季节性信号######################
+
 # 聚合为月度数据 - 为每个月计算价格涨跌情况
+
 def aggregate_to_monthly_price_change(df):
     """
     为每个月计算多空组合的净值涨跌情况
     :param df: 多空组合后的净值
     :return: 月度涨跌数据
     """
-    # 为日频数据添加年月信息
-    df["date"] = pd.to_datetime(df["date"])
-    df['year'] = df['date'].dt.year
-    df['month'] = df['date'].dt.month
-    df['day'] = df['date'].dt.day
-    # 按年月分组
-    monthly_grouped = df.groupby(['year', 'month'])
-
-    monthly_data = []
-    for (year, month), group in monthly_grouped:
-        # 按日期排序
-        group = group.sort_values('date')
-
-        # 计算月度价格变化
-        first_price = group['close'].iloc[0]
-        last_price = group['close'].iloc[-1]
-        monthly_return = (last_price / first_price) - 1
-
-        # 判断价格是涨还是跌
-        price_up = monthly_return > 0
-
-        monthly_data.append({
-            'year': year,
-            'month': month,
-            'return': monthly_return,
-            'price_up': price_up,  # True表示价格上涨，False表示价格下跌或不变
-            'last_date': group['date'].iloc[-1]
-        })
-
-    return pd.DataFrame(monthly_data)
+    df = df.copy()
+    df["time"] = pd.to_datetime(df["time"])
+    df['year'] = df['time'].dt.year
+    df['month'] = df['time'].dt.month
+    # 用groupby+agg优化
+    monthly = df.groupby(['year', 'month']).agg(
+        first_price=('close', 'first'),
+        last_price=('close', 'last'),
+        last_date=('time', 'last')
+    ).reset_index()
+    monthly['return'] = (monthly['last_price'] / monthly['first_price']) - 1
+    monthly['price_up'] = monthly['return'] > 0
+    return monthly[['year', 'month', 'return', 'price_up', 'last_date']]
 
 # 函数：计算到某年某月为止的历史价格涨跌胜率
-def calculate_price_up_win_rate(df, current_year, current_month):
-    # 筛选历史数据（不包括当前月及之后的数据）
-    mask = ((df['year'] <= current_year) & (df['month'] <= current_month))
-    historical_data = df[mask].copy()
 
+def calculate_price_up_win_rate(df, current_year, current_month):
+    # 只包含当前月之前的历史数据
+    mask = ((df['year'] < current_year) | ((df['year'] == current_year) & (df['month'] < current_month)))
+    historical_data = df[mask].copy()
     # 按月份分组计算价格上涨的胜率
     monthly_win_rates = {}
     for month in range(1, 13):
         month_data = historical_data[historical_data['month'] == month]
         if len(month_data) > 0:
-            # 计算该月价格上涨的比例作为胜率
-            wins = sum(month_data['price_up'])
+            wins = month_data['price_up'].sum()
             total = len(month_data)
             win_rate = wins / total if total > 0 else 0.5
             monthly_win_rates[month] = win_rate
         else:
             monthly_win_rates[month] = 0.5  # 如果没有历史数据，默认为50%
-
     return monthly_win_rates
-
-
-# 计算季节性信号和权重
-def calculate_seasonal_signals(monthly_data, start_year, end_year):
-    results = []
-
-    # 从起始年份到结束年份，计算每月的信号
-    for year in range(start_year, end_year + 1):
-        for month in range(1, 13):
-            # 跳过未来数据
-            current_date = datetime(year, month, 1)
-            if current_date > datetime.now():
-                continue
-
-            # 计算该月的历史价格上涨胜率
-            win_rates = calculate_price_up_win_rate(monthly_data, year, month)
-            current_win_rate = win_rates[month]
-
-            # 计算偏离基准的程度
-            deviation = current_win_rate - 0.5
-
-            # 确定信号方向和权重
-            signal_direction = 1 if deviation > 0 else -1  # 1表示多头，-1表示空头
-            weight = abs(deviation)  # 权重为偏离的绝对值
-
-            results.append({
-                'year': year,
-                'month': month,
-                'win_rate': current_win_rate,
-                'deviation': deviation,
-                'signal': signal_direction,
-                'weight': weight
-            })
-
-    return pd.DataFrame(results)
-
-
-if __name__ == "__main__":
-
-    pairs = ["IFIH", "ICIF", "IMIC", "IMIH"]
-    for pair in pairs:
-        daily_data = pd.read_csv("../data/{}_signal.csv".format(pair), usecols=['date', 'open', 'high', 'low', 'close'])
-        monthly_data = aggregate_to_monthly_price_change(daily_data)
-        # 生成信号
-        start_year = 2010  # 从2010年开始生成信号
-        end_year = 2024  # 到2023年结束
-        signals = calculate_seasonal_signals(monthly_data, start_year, end_year)
-        signals[["month", "win_rate", "signal", "weight"]].tail(12).to_csv("../tests/season_signal_{}.csv".format(pair), index=False)
-    # print(signals.tail(12))
-    # THS_iFinDLogin('ghyjsxs207', '505933')
-    # w.start()
-    # # 股指数据
-    # start_date = "20100101"
-    # end_date = "20250216"
-    # index_data = THS_HQ('000016.SH,000300.SH,000852.SH,000905.SH', 'close;changeRatio', '', start_date, end_date).data
-    # index_data.to_csv("index_data_{}_{}.csv".format(start_date, end_date), index=False)
-    # #
-    # # # 基差信号
-    # start = "2023-12-14"
-    # end = "2025-02-16"
-    # IC = w.wsd("IC.CFE", "anal_basisannualyield,ltdate_new,open,pct_chg", start, end, "", usedf=True)[1]
-    # IF = w.wsd("IF.CFE", "anal_basisannualyield,ltdate_new,open,pct_chg", start, end, "", usedf=True)[1]
-    # IH = w.wsd("IH.CFE", "anal_basisannualyield,ltdate_new,open,pct_chg", start, end, "", usedf=True)[1]
-    # IM = w.wsd("IM.CFE", "anal_basisannualyield,ltdate_new,open,pct_chg", start, end, "", usedf=True)[1]
-    # IC.columns = ['IC_' + col for col in IC.columns]
-    # IF.columns = ['IF_' + col for col in IF.columns]
-    # IH.columns = ['IH_' + col for col in IH.columns]
-    # IM.columns = ['IM_' + col for col in IM.columns]
-    # df_futures = pd.concat([IC, IF, IH, IM], axis=1)
-    # df_futures["IFIH"] = df_futures["IF_ANAL_BASISANNUALYIELD"] - df_futures["IH_ANAL_BASISANNUALYIELD"]
-    # df_futures["ICIF"] = df_futures["IC_ANAL_BASISANNUALYIELD"] - df_futures["IF_ANAL_BASISANNUALYIELD"]
-    # df_futures["IMIC"] = df_futures["IM_ANAL_BASISANNUALYIELD"] - df_futures["IC_ANAL_BASISANNUALYIELD"]
-    # df_futures["IMIH"] = df_futures["IM_ANAL_BASISANNUALYIELD"] - df_futures["IH_ANAL_BASISANNUALYIELD"]
-    # df_futures.to_csv("futures_data_{}_{}.csv".format(start, end), index=True)
-    #
-    # df_futures = pd.read_csv("futures_data_{}_{}.csv".format(start, end), index_col=0)
-    # df_futures.index = pd.to_datetime(df_futures.index)
-    #
-    # index_data = pd.read_csv("index_data_{}_{}.csv".format(start_date, end_date))
-    # df_index_close = pd.pivot(index_data, index="time", columns="thscode", values="close")
-    # # df_index_return1 = df_index_close.pct_change(periods=1)
-    # df_index_return = pd.pivot(index_data, index="time", columns="thscode", values="changeRatio") / 100
-    # df_index_return.index = pd.to_datetime(df_index_return.index)
-    #
-    # columns = df_index_return.columns
-    # for col in columns:
-    #     # 计算每个标的的滚动60日波动率
-    #     df_index_return[f'{col}_60d_volatility'] = df_index_return[col].rolling(window=60).std()
-    #
-    # df_vol = df_index_return.copy(deep=True)
-    # df_vol.rename(columns=lambda x: x.replace('000016.SH', 'IH').replace('000905.SH', 'IC').replace('000300.SH', 'IF').replace('000852.SH', 'IM'), inplace=True)
-    # pairs = ["IFIH", "ICIF", "IMIC", "IMIH"]
-    # for pair in pairs:
-    #     # 计算多头标的权重
-    #     df_vol["{}_{}_weight".format(pair, pair[:2])] = 2 * df_vol["{}_60d_volatility".format(pair[2:])] / (
-    #             df_vol["{}_60d_volatility".format(pair[:2])] + df_vol["{}_60d_volatility".format(pair[2:])])
-    #     # 计算空头标的权重
-    #     df_vol["{}_{}_weight".format(pair, pair[2:])] = 2 * df_vol["{}_60d_volatility".format(pair[:2])] / (
-    #             df_vol["{}_60d_volatility".format(pair[:2])] + df_vol["{}_60d_volatility".format(pair[2:])])
-    #     # 计算收益率60日相关性
-    #     df_vol["{}_60d_corr".format(pair)] = df_vol["{}".format(pair[:2])].rolling(window=60).corr(df_vol["{}".format(pair[2:])])
-    #
-    # df_basis_signal = pd.merge(df_vol, df_futures, left_index=True, right_index=True)
-    # for pair in pairs:
-    #     # 计算基差信号
-    #     df_basis_signal["signal_{}".format(pair)] = (df_basis_signal["{}_{}_weight".format(pair, pair[:2])] * \
-    #                                                  df_basis_signal["{}_ANAL_BASISANNUALYIELD".format(pair[:2])] - df_basis_signal["{}_{}_weight".format(pair, pair[2:])] * \
-    #                                                  df_basis_signal["{}_ANAL_BASISANNUALYIELD".format(pair[2:])]) / 100
-    #     # 如果收益率60日相关性小于0.7，则空仓
-    #     df_basis_signal["signal_{}_position".format(pair)] = np.where(
-    #         df_basis_signal["{}_60d_corr".format(pair)] >= 0.7,
-    #         -df_basis_signal["signal_{}".format(pair)] * 10,
-    #         0)
-    #
-    # df_basis_signal["date"] = pd.to_datetime(df_basis_signal.index)
-    # df_basis_signal = df_basis_signal[['date', 'signal_IFIH', 'signal_IFIH_position',
-    #                                    'signal_ICIF', 'signal_ICIF_position', 'signal_IMIC',
-    #                                    'signal_IMIC_position', 'signal_IMIH', 'signal_IMIH_position']]
-    #
-    # df_basis_signal.to_csv("basis_signal.csv", index=False)
-    #
-    # df_futures["IFIH_futures"] = (df_futures["IF_PCT_CHG"] - df_futures["IH_PCT_CHG"]) / 100
-    # df_futures["ICIF_futures"] = (df_futures["IC_PCT_CHG"] - df_futures["IF_PCT_CHG"]) / 100
-    # df_futures["IMIC_futures"] = (df_futures["IM_PCT_CHG"] - df_futures["IC_PCT_CHG"]) / 100
-    # df_futures["IMIH_futures"] = (df_futures["IM_PCT_CHG"] - df_futures["IH_PCT_CHG"]) / 100
-    #
-    # df_futures["IFIH_futures_nv"] = (1 + df_futures["IFIH_futures"]).cumprod()
-    # df_futures["ICIF_futures_nv"] = (1 + df_futures["ICIF_futures"]).cumprod()
-    # df_futures["IMIC_futures_nv"] = (1 + df_futures["IMIC_futures"]).cumprod()
-    # df_futures["IMIH_futures_nv"] = (1 + df_futures["IMIH_futures"]).cumprod()
-    #
-    # df_futures_nv = df_futures[["IFIH_futures_nv", "ICIF_futures_nv", "IMIC_futures_nv", "IMIH_futures_nv"]]
-    # df_futures_nv = df_futures_nv.div(df_futures_nv.iloc[0])
-    #
-    # df_futures_nv.index = pd.to_datetime(df_futures.index)
-    # # 股指期货多空组合的净值
-    # df_futures_nv.to_csv("futures_nv_data_{}_{}.csv".format(start, end), index=True)
-    # df_index_return["IF_60_std"]
-    #
-    # df_index_return["IFIH_index"] = df_index_return["000300.SH"] - df_index_return["000016.SH"]
-    # df_index_return["ICIF_index"] = df_index_return["000905.SH"] - df_index_return["000300.SH"]
-    # df_index_return["IMIC_index"] = df_index_return["000852.SH"] - df_index_return["000905.SH"]
-    # df_index_return["IMIH_index"] = df_index_return["000852.SH"] - df_index_return["000016.SH"]
-    #
-    # df_index_return["IFIH_index_nv"] = (1 + df_index_return["IFIH_index"]).cumprod()
-    # df_index_return["ICIF_index_nv"] = (1 + df_index_return["ICIF_index"]).cumprod()
-    # df_index_return["IMIC_index_nv"] = (1 + df_index_return["IMIC_index"]).cumprod()
-    # df_index_return["IMIH_index_nv"] = (1 + df_index_return["IMIH_index"]).cumprod()
-    #
-    # df_index_nv = df_index_return[["IFIH_index_nv", "ICIF_index_nv", "IMIC_index_nv", "IMIH_index_nv"]]
-    # df_index_nv = df_index_nv.div(df_index_nv.iloc[0])
-    # df_index_nv.index = pd.to_datetime(df_index_return.index)
-    # df_index_nv.to_csv("index_nv_data_{}_{}.csv".format(start_date, end_date), index=True)
-    #
-    #
-    #
-    # plt.figure(figsize=(12, 6))  # 设置图表大小
-    # for col in df_index_nv.columns:
-    #     plt.plot(df_index_nv.index, df_index_nv[col], label=col)  # 为每列画线
-    #
-    # # 添加图例、标题和坐标轴标签
-    # plt.legend(title="Columns", loc="upper left")
-    # plt.title("Normalized DataFrame Plot (Starting at 1)")
-    # plt.xlabel("Index")
-    # plt.ylabel("Normalized Value")
-    # plt.show()
-    #
-    # print()

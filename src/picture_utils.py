@@ -1,10 +1,19 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
-plt.rcParams['font.sans-serif'] = ['simsun'] # 显示中文字体
+plt.rcParams['font.sans-serif'] = ['simsun']  # 中文字体
+matplotlib.rcParams.update({'font.size': 16})
+
 def plot_trade_nv(portfolio_csv, position_csv):
     """
     根据给定的 portfolio 和 position 数据绘制净值曲线和仓位信号图。
+    在一张图里：
+    - 左轴：净值曲线（红色折线，归一化到首行）
+    - 右轴：仓位信号（浅蓝色柱状图）
+    并且：
+    - 对 position 信号做了从 2016-01-01 起的筛选
+    - 在 y=0 处画了灰色虚线
+    - 自动保存成 “XXXX_concat_curve.png”
 
     参数：
     portfolio_csv (str): 包含 market_value 数据的 CSV 文件路径。
@@ -14,7 +23,10 @@ def plot_trade_nv(portfolio_csv, position_csv):
     None
     """
     matplotlib.rcParams.update({'font.size': 16})
-
+    # 提取第一个下划线前的部分（symbol）
+    symbol = filename.split('_')[0]  # 'IFIH'
+    # 提取第一个和第二个下划线之间的部分（strategy）
+    strategy = filename.split('_')[1]  # 'futures'
     # 读取 CSV 文件
     portfolio_df = pd.read_csv(portfolio_csv)
     position_df = pd.read_csv(position_csv)
@@ -49,14 +61,14 @@ def plot_trade_nv(portfolio_csv, position_csv):
     ax2.axhline(y=0, color='gray', linestyle='--', linewidth=0.8)
 
     # 设置标题和图例
-    plt.title(portfolio_csv[:4] + " concat Backtest Result")
+    plt.title(symbol + strategy + " Backtest Result")
     lines1, labels1 = ax1.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
     ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
     fig.tight_layout()
 
     # 保存图像到指定文件
-    plt.savefig(portfolio_csv[:4]+ "_concat_curve.png", dpi=300)
+    plt.savefig(f"{symbol}_{strategy}_concat_curve.png", dpi=300)
     plt.show()
 
 def plot_concat_nv(*args):
@@ -98,42 +110,3 @@ def plot_concat_nv(*args):
     plt.tight_layout()
     plt.savefig("concat_nv_curve.png", dpi=300)
     plt.show()
-
-
-
-
-
-if __name__ == '__main__':
-
-    # 这部分代码是画图用的，'IFIH_portfolio.csv'是IFIH的指数动量回测结果，'IFIH_signal.csv'是IFIH的指数动量策略信号
-    # plot_trade_nv('IFIH_portfolio.csv', 'IFIH_signal.csv')
-    # plot_trade_nv('ICIF_portfolio.csv', 'ICIF_signal.csv')
-    # plot_trade_nv('IMIC_portfolio.csv', 'IMIC_signal.csv')
-    # plot_trade_nv('IMIH_portfolio.csv', 'IMIH_signal.csv')
-
-    # 'IFIH_futures_portfolio.csv'是IFIH的期货动量回测结果，'IFIH_futures_signal.csv'是IFIH的期货动量策略信号
-    # plot_trade_nv('IFIH_futures_portfolio.csv', 'IFIH_futures_signal.csv')
-    # plot_trade_nv('ICIF_futures_portfolio.csv', 'ICIF_futures_signal.csv')
-    # plot_trade_nv('IMIC_futures_portfolio.csv', 'IMIC_futures_signal.csv')
-    # plot_trade_nv('IMIH_futures_portfolio.csv', 'IMIH_futures_signal.csv')
-
-    # 'IFIH_basis_portfolio.csv'是IFIH的期货基差回测结果，'IFIH_basis_signal.csv'是IFIH的期货基差策略信号
-    # plot_trade_nv('IFIH_basis_portfolio.csv', 'IFIH_basis_signal.csv')
-    # plot_trade_nv('ICIF_basis_portfolio.csv', 'ICIF_basis_signal.csv')
-    # plot_trade_nv('IMIC_basis_portfolio.csv', 'IMIC_basis_signal.csv')
-    # plot_trade_nv('IMIH_futures_portfolio.csv', 'IMIH_futures_signal.csv')
-
-    # 'IFIH_season_portfolio.csv'是IFIH的期货季节性轮动回测结果，'IFIH_season_signal.csv'是IFIH的期货季节性轮动策略信号
-    # plot_trade_nv('IFIH_season_portfolio.csv', 'IFIH_season_signal.csv')
-    # plot_trade_nv('ICIF_season_portfolio.csv', 'ICIF_season_signal.csv')
-    # plot_trade_nv('IMIC_season_portfolio.csv', 'IMIC_season_signal.csv')
-    # plot_trade_nv('IMIH_season_portfolio.csv', 'IMIH_season_signal.csv')
-
-    # 'IFIH_concat_portfolio.csv'是IFIH期货组合基差、动量和季节性轮动的回测结果，'IFIH_concat_signal.csv'是IFIH期货组合基差、动量和季节性轮动策略信号
-    # plot_trade_nv('IFIH_concat_portfolio.csv', 'IFIH_concat_signal.csv')
-    # plot_trade_nv('ICIF_concat_portfolio.csv', 'ICIF_concat_signal.csv')
-    # plot_trade_nv('IMIC_concat_portfolio.csv', 'IMIC_concat_signal.csv')
-    # plot_trade_nv('IMIH_concat_portfolio.csv', 'IMIH_concat_signal.csv')
-
-    # 绘制最后四个组合品种的净值曲线
-    plot_concat_nv('IFIH_concat_portfolio.csv', 'ICIF_concat_portfolio.csv', 'IMIC_concat_portfolio.csv','IMIH_concat_portfolio.csv')
