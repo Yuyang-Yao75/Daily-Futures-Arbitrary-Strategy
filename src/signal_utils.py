@@ -529,14 +529,14 @@ def aggregate_to_monthly_price_change(df):
     :return: 月度涨跌数据
     """
     df = df.copy()
-    df["time"] = pd.to_datetime(df["time"])
-    df['year'] = df['time'].dt.year
-    df['month'] = df['time'].dt.month
+    df["date"] = pd.to_datetime(df["date"])
+    df['year'] = df['date'].dt.year
+    df['month'] = df['date'].dt.month
     # 用groupby+agg优化
     monthly = df.groupby(['year', 'month']).agg(
         first_price=('close', 'first'),
         last_price=('close', 'last'),
-        last_date=('time', 'last')
+        last_date=('date', 'last')
     ).reset_index()
     monthly['return'] = (monthly['last_price'] / monthly['first_price']) - 1
     monthly['price_up'] = monthly['return'] > 0

@@ -29,14 +29,14 @@ def search_file_recursive(directory, filename):
             return True
     return False
 
-def pivot_index_data(df, code_map):
+def pivot_index_data(df, code_map):#todo
     """
     将长格式的指数日度数据转成宽格式。
 
     参数
     ----
     df : pandas.DataFrame
-        包含列 ['time', 'thscode', 'close', 'changeRatio'] 的长表，
+        包含列 ['time', 'thscode', 'close', 'changeRatio'] 的长表，直接从 iFind 中下载即可。，
         time 已经是 datetime 或可解析为 datetime 的字符串。
     code_map : dict
         从指数代码到你想要前缀的映射，例如
@@ -177,7 +177,10 @@ def pivot_index_data(df, code_map):
 #获取净值数据
 def get_nv_data(df_underlying: pd.DataFrame, cal_type: str) -> pd.DataFrame:
     if search_file_recursive(RAW_DATA_PATH, f"{cal_type}_nv_data.csv"):
-        return pd.read_csv(os.path.join(RAW_DATA_PATH, f"{cal_type}_nv_data.csv"))
+        df_nv = pd.read_csv(os.path.join(RAW_DATA_PATH, f"{cal_type}_nv_data.csv"))
+        df_nv["date"] = pd.to_datetime(df_nv["date"])
+        df_nv.set_index("date", inplace=True)
+        return df_nv
     else:
         df_nv = calculate_nv_data(df_underlying, cal_type)
         return df_nv
@@ -205,8 +208,13 @@ def calculate_nv_data(df_underlying: pd.DataFrame,
 
     # 时间列转 datetime 并设为索引
     df = df_underlying.copy()
-    df["time"] = pd.to_datetime(df["time"])
-    df.set_index("time", inplace=True)
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"])
+        df.set_index("date", inplace=True)
+    elif df.index.name == "date":
+        pass
+    else:
+        raise KeyError("No 'date' column or index found in DataFrame.")
 
     # 存放所有组合净值
     df_nv = pd.DataFrame(index=df.index)
@@ -219,16 +227,13 @@ def calculate_nv_data(df_underlying: pd.DataFrame,
         # 归一化到 1
         df_nv[f"{pair}_{cal_type}_nv"] = cum_nv / cum_nv.iloc[0]
 
-    # 自动用时间范围拼文件名，并在初次运行时保存
-    start_str = df_nv.index[0].strftime('%Y%m%d')
-    end_str   = df_nv.index[-1].strftime('%Y%m%d')
     out_path = os.path.join(RAW_DATA_PATH,
-                            f"{file_prefix}_{start_str}_{end_str}.csv")
+                            f"{file_prefix}.csv")
     df_nv.to_csv(out_path, index=True)
-
     return df_nv
+
 # 生成高开低收格式数据
-def generate_ohlc(df_nv:pd.DataFrame,prefix:str)->pd.DataFrame:
+def generate_ohlc(df_nv:pd.DataFrame,prefix:str)->pd.DataFrame:#todo
     """
     从净值数据中提取以指定前缀开头的列，并生成 OHLC 表格。
 
@@ -251,4 +256,6 @@ def generate_ohlc(df_nv:pd.DataFrame,prefix:str)->pd.DataFrame:
     df['open']=df['close']-0.01
     df['high']=df['close']+0.01
     df['low']=df['close']-0.02
+    df['date']=pd.to_datetime(df['date'])
+    df.set_index('date',inplace=True)
     return df

@@ -33,6 +33,11 @@ def calculate_basis_signal(
         - signal_{pair}         (float) 基差信号
         - signal_{pair}_position(float) 最终仓位信号
     """
+    if search_file_recursive(SIGNAL_DATA_PATH, f'{pair}_raw_basis_signal.csv'):
+        df_out = pd.read_csv(os.path.join(SIGNAL_DATA_PATH, f'{SIGNAL_DATA_PATH}/{pair}_raw_basis_signal.csv'))
+        df_out["date"] = pd.to_datetime(df_out["date"])
+        df_out.set_index("date", inplace=True)
+        return df_out
     # 计算滚动波动率
     sym_long, sym_short = pair[:2], pair[2:]
     vol_long = df_index[f"{sym_long}_udy_changeRatio"].rolling(window).std()
@@ -60,11 +65,12 @@ def calculate_basis_signal(
         'date':                    df_future.index,
         f"signal_{pair}":          signal.values,
         f"signal_{pair}_position": position.values
-    }).reset_index(drop=True)
+    }).set_index("date")
     # 返回结果
-    df_out.to_csv(f'{SIGNAL_DATA_PATH}/{pair}_raw_basis_signal.csv',index=False)
+    df_out.to_csv(f'{SIGNAL_DATA_PATH}/{pair}_raw_basis_signal.csv',index=True)
     return df_out
-def generate_all_basis_signal(index_data, futures_data, pairs:list=AVAILABLE_PAIRS):
+
+def generate_all_basis_signal(index_data, futures_data, pairs:list=AVAILABLE_PAIRS):#暂时没有用到
     all_signals=[]
     for pair in pairs:
         df_sig = calculate_basis_signal(index_data, futures_data, pair)
@@ -125,7 +131,7 @@ def generate_all_technical_signals(
 
     for pair in pairs:
         # 计算单个组合的技术因子信号
-        signal_df = calculate_technical_signals(index_nv_df, pair)
+        signal_df = calculate_technical_signal(index_nv_df, pair)
         # 存入字典，键为 pair，值为对应的 DataFrame
         signals_dict[pair] = signal_df
 
@@ -203,18 +209,20 @@ def extract_signals(futures_nv_df: pd.DataFrame, pair: str,signals_df: pd.DataFr
     返回:
     pd.DataFrame，含 [date, symbol, open, high, low, close, position_signal]
     """
+    if search_file_recursive(SIGNAL_DATA_PATH, f'{pair}_{strategy_name}_signal.csv'):
+        df_out = pd.read_csv(os.path.join(SIGNAL_DATA_PATH, f'{SIGNAL_DATA_PATH}/{pair}_raw_basis_signal.csv'))
+        df_out["date"] = pd.to_datetime(df_out["date"])
+        df_out.set_index("date", inplace=True)
+        return df_out
     # 1) 生成 OHLC 框架
     data_df = generate_ohlc(futures_nv_df, pair).copy()
-    data_df['time'] = pd.to_datetime(data_df['time'])
-    data_df.set_index('time', inplace=True)
 
     df = data_df.copy()
     if strategy_name == "basis":
         raw = signals_df.copy()
-        raw['date'] = pd.to_datetime(raw['date'])
-        raw.set_index('date', inplace=True)
         col = f"signal_{pair}_position"
         df = df.join(raw[[col]].rename(columns={col: "position_signal"}),how="left")
+        df["symbol"]= pair
     elif strategy_name == "technical":
         raw = signals_df.copy()
         raw['date'] = pd.to_datetime(raw['date'])
@@ -228,11 +236,14 @@ def extract_signals(futures_nv_df: pd.DataFrame, pair: str,signals_df: pd.DataFr
         df['month'] = df.index.month
         df['position_signal'] = df['month'].map(month_map)
         df.drop('month', axis=1, inplace=True)
-
     else:
         raise ValueError(f"Unknown strategy: {strategy_name}")
     df = df.reset_index()
-    return df[['date','symbol','open','high','low','close','position_signal']]
+    df_out = df[['date','symbol','open','high','low','close','position_signal']]
+    df_out["date"] = pd.to_datetime(df_out["date"])
+    df_out.set_index("date", inplace=True)
+    df_out.to_csv(f"{SIGNAL_DATA_PATH}/{pair}_{strategy_name}_signal.csv",index=True)
+    return df_out
 
 def extract_concat_signals(
         futures_nv_df: pd.DataFrame,
@@ -255,8 +266,8 @@ def extract_concat_signals(
     """
     # 1) 生成 OHLC
     data_df = generate_ohlc(futures_nv_df, pair).copy()
-    data_df['time'] = pd.to_datetime(data_df['time'])
-    data_df.set_index('time', inplace=True)
+    data_df['date'] = pd.to_datetime(data_df['date'])
+    data_df.set_index('date', inplace=True)
     df = data_df.copy()
 
     # 2) 计算三路信号序列

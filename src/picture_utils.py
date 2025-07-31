@@ -1,7 +1,11 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
-plt.rcParams['font.sans-serif'] = ['simsun']  # 中文字体
+from config import RESULT_PATH,SIGNAL_DATA_PATH
+# plt.rcParams['font.sans-serif'] = ['simsun']  # 中文字体
+from pylab import mpl
+mpl.rcParams['font.sans-serif'] = ['FZKai-Z03S']
+mpl.rcParams['axes.unicode_minus'] = False
 matplotlib.rcParams.update({'font.size': 16})
 
 def plot_trade_nv(portfolio_csv, position_csv):
@@ -24,12 +28,12 @@ def plot_trade_nv(portfolio_csv, position_csv):
     """
     matplotlib.rcParams.update({'font.size': 16})
     # 提取第一个下划线前的部分（symbol）
-    symbol = filename.split('_')[0]  # 'IFIH'
+    symbol = portfolio_csv.split('_')[0]  # 'IFIH'
     # 提取第一个和第二个下划线之间的部分（strategy）
-    strategy = filename.split('_')[1]  # 'futures'
+    strategy = portfolio_csv.split('_')[1]  # 'futures'
     # 读取 CSV 文件
-    portfolio_df = pd.read_csv(portfolio_csv)
-    position_df = pd.read_csv(position_csv)
+    portfolio_df = pd.read_csv(f"{RESULT_PATH}/{portfolio_csv}")
+    position_df = pd.read_csv(f"{SIGNAL_DATA_PATH}/{position_csv}")
     position_df = position_df[position_df['date'] >= '2016-01-01']
     # 确保 time 列是日期格式
     portfolio_df['date'] = pd.to_datetime(portfolio_df['date'])
@@ -61,14 +65,14 @@ def plot_trade_nv(portfolio_csv, position_csv):
     ax2.axhline(y=0, color='gray', linestyle='--', linewidth=0.8)
 
     # 设置标题和图例
-    plt.title(symbol + strategy + " Backtest Result")
+    plt.title(symbol + " " + strategy + " Backtest Result")
     lines1, labels1 = ax1.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
     ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
     fig.tight_layout()
 
     # 保存图像到指定文件
-    plt.savefig(f"{symbol}_{strategy}_concat_curve.png", dpi=300)
+    plt.savefig(f"RESULT_PATH/{symbol}_{strategy}_curve.png", dpi=300)
     plt.show()
 
 def plot_concat_nv(*args):
