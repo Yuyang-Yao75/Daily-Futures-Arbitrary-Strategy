@@ -54,7 +54,7 @@ def run_strategy(symbol="IMIH",strategy_name="basis"):
         raise ValueError(f"Unknown strategy name: {strategy_name}")
 
     processed_signal = extract_signals(futures_nv_data,symbol,raw_signal,strategy_name)
-    signal_path = f"{SIGNAL_DATA_PATH}/{symbol}_{strategy_name}_signal.csv"
+    signal_path = f"{RESULT_PATH}/{symbol}_{strategy_name}_signal.csv"
 
     # Step 3:执行策略与回测
     csv_data_source = CSVDataSource(csv_file=signal_path)
@@ -77,4 +77,7 @@ def run_strategy(symbol="IMIH",strategy_name="basis"):
     plot_trade_nv(f'{symbol}_{strategy_name}_portfolio.csv', f'{symbol}_{strategy_name}_signal.csv')
 
 if __name__ == "__main__":
-    run_strategy(symbol="IMIH",strategy_name="concat")
+    for symbol in AVAILABLE_PAIRS:
+        for strategy_name in AVAILABLE_STRATEGY:
+            print(f"...正在对{symbol}执行{strategy_name}策略")
+            run_strategy(symbol=symbol,strategy_name=strategy_name)

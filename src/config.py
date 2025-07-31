@@ -79,7 +79,7 @@ PAIR_FACTORS = {
         ('TRIX',          (generate_ma_signal, {'short_window':5, 'long_window':20, 'ma_type':'TRIX'})),
         ('bollinger_r',   (bollinger_r,        {'window':20,'num_std_upper':3,'num_std_lower':3})),
         ('EXPWMA',        (generate_ma_signal, {'short_window':5,'long_window':10,'ma_type':'EXPWMA'})),
-        ('roc_MOM',       (roc_MOM,            {'window':10})),
+        ('roc_MOM',       (roc_r,            {'window':10})),
         ('WMA',           (generate_ma_signal, {'short_window':5,'long_window':20,'ma_type':'WMA','vfactor':1})),
         ('Kaufman',       (generate_ma_signal, {'short_window':3,'long_window':5,'ma_type':'Kaufman'})),
         ('MACD',          (macd_signal,        {'short_window':7,'long_window':14,'signalperiod':6})),
@@ -114,7 +114,7 @@ PAIR_FACTORS = {
         ('MidPoint',      (generate_ma_signal, {'short_window':5,  'long_window':10, 'ma_type':'MidPoint'})),
         ('MACD',          (macd_signal,        {'short_window':7,  'long_window':14, 'signalperiod':5})),
         ('continuous',    (continuous_signal,  {'window':3})),
-        ('roc_MOM',       (roc_MOM,            {'window':10})),
+        ('roc_MOM',       (roc_r,            {'window':10})),
         ('bollinger_MOM', (bollinger_MOM,      {'window':20,'num_std_upper':1,'num_std_lower':1})),
     ]),
     # IMIH: 多中证1000、空上证50
@@ -130,7 +130,7 @@ PAIR_FACTORS = {
         ('MESA_Adaptive', (generate_ma_signal, {'short_window':3,  'long_window':20,  'ma_type':'MESA_Adaptive',
                                             'fastlimit':0.3,  'slowlimit':0.2})),
         ('WMA_3',         (generate_ma_signal, {'short_window':3,  'long_window':40, 'ma_type':'WMA'})),
-        ('roc_MOM',       (roc_MOM,            {'window':10})),
+        ('roc_MOM',       (roc_r,            {'window':10})),
     ]),
 }
 

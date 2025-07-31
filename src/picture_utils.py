@@ -33,7 +33,7 @@ def plot_trade_nv(portfolio_csv, position_csv):
     strategy = portfolio_csv.split('_')[1]  # 'futures'
     # 读取 CSV 文件
     portfolio_df = pd.read_csv(f"{RESULT_PATH}/{portfolio_csv}")
-    position_df = pd.read_csv(f"{SIGNAL_DATA_PATH}/{position_csv}")
+    position_df = pd.read_csv(f"{RESULT_PATH}/{position_csv}")
     position_df = position_df[position_df['date'] >= '2016-01-01']
     # 确保 time 列是日期格式
     portfolio_df['date'] = pd.to_datetime(portfolio_df['date'])

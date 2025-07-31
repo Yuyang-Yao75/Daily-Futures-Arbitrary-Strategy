@@ -217,8 +217,8 @@ def extract_signals(futures_nv_df: pd.DataFrame, pair: str,signals_df: pd.DataFr
     返回:
     pd.DataFrame，含 [date, symbol, open, high, low, close, position_signal]
     """
-    if search_file_recursive(SIGNAL_DATA_PATH, f'{pair}_{strategy_name}_signal.csv'):
-        df_out = pd.read_csv(os.path.join(SIGNAL_DATA_PATH, f'{SIGNAL_DATA_PATH}/{pair}_{strategy_name}_signal.csv'))
+    if search_file_recursive(RESULT_PATH, f'{pair}_{strategy_name}_signal.csv'):
+        df_out = pd.read_csv(os.path.join(RESULT_PATH, f'{RESULT_PATH}/{pair}_{strategy_name}_signal.csv'))
         df_out["date"] = pd.to_datetime(df_out["date"])
         df_out.set_index("date", inplace=True)
         return df_out
@@ -248,7 +248,7 @@ def extract_signals(futures_nv_df: pd.DataFrame, pair: str,signals_df: pd.DataFr
     df_out = df[['date','symbol','open','high','low','close','position_signal']]
     df_out["date"] = pd.to_datetime(df_out["date"])
     df_out.set_index("date", inplace=True)
-    df_out.to_csv(f"{SIGNAL_DATA_PATH}/{pair}_{strategy_name}_signal.csv",index=True)
+    df_out.to_csv(f"{RESULT_PATH}/{pair}_{strategy_name}_signal.csv",index=True)
     return df_out
 
 def extract_concat_signals(
@@ -270,8 +270,8 @@ def extract_concat_signals(
     返回:
     pd.DataFrame，含 [date, symbol, open, high, low, close, position_signal]
     """
-    if search_file_recursive(SIGNAL_DATA_PATH, f'{pair}_concat_signal.csv'):
-        df_out = pd.read_csv(os.path.join(SIGNAL_DATA_PATH, f'{SIGNAL_DATA_PATH}/{pair}_concat_signal.csv'))
+    if search_file_recursive(RESULT_PATH, f'{pair}_concat_signal.csv'):
+        df_out = pd.read_csv(os.path.join(RESULT_PATH, f'{RESULT_PATH}/{pair}_concat_signal.csv'))
         df_out["date"] = pd.to_datetime(df_out["date"])
         df_out.set_index("date", inplace=True)
         return df_out
@@ -314,5 +314,5 @@ def extract_concat_signals(
     values = [1.5, 1, 0.5, 0, -0.5, -1, -1.5]
     df['position_signal'] = np.select(conditions, values)
     df['symbol'] = pair
-    df.to_csv(f"{SIGNAL_DATA_PATH}/{pair}_concat_signal.csv",index=True)
+    df.to_csv(f"{RESULT_PATH}/{pair}_concat_signal.csv",index=True)
     return df
