@@ -15,11 +15,14 @@ from signal_utils import (
     continuous_r,    # 反转型连续天数策略
     quantile_signal, # 百分位反转策略
 )
+#todo 基差策略和季节性策略仍有部分参数为直接设定
 # 策略品种设定
 STOCK_INDEX='000016.SH,000300.SH,000852.SH,000905.SH'
 # 日期设定：可自由设定回测时间
 START_DATE=datetime.datetime(2023, 12, 14)
 END_DATE=datetime.datetime(2025, 6, 25)
+INITIAL_CASH=10_000
+BARS_PER_YEAR=244
 CODE_MAP = {
     '000852.SH': 'IM',  # 中证1000指数 -> IM期货
     '000905.SH': 'IC',  # 中证500指数 -> IC期货
@@ -27,7 +30,7 @@ CODE_MAP = {
     '000016.SH': 'IH',  # 上证50指数 -> IH期货
 }
 AVAILABLE_PAIRS = [f"{a}{b}" for a, b in combinations(list(CODE_MAP.values()), 2)]
-AVAILABLE_STRATEGY=['basis','season','technical','concat']
+AVAILABLE_STRATEGY=['basis','seasonal','technical','concat']
 
 # 文件路径相关设置
 PROJECT_PATH = os.path.abspath(os.path.dirname(__file__))

@@ -2,6 +2,7 @@ from pybroker import Strategy, StrategyConfig
 from strategy_utils import *
 from backtest_utils import *
 from picture_utils import *
+from config import INITIAL_CASH, BARS_PER_YEAR
 
 def run_strategy(symbol="IMIH",strategy_name="basis"):
     """
@@ -15,7 +16,7 @@ def run_strategy(symbol="IMIH",strategy_name="basis"):
     strategy_name : str, 默认 "basis"
         策略名称，可选：
             - "basis"：基差策略，仅使用基差信号；
-            - "season"：季节性策略，仅使用季节性信号；
+            - "seasonal"：季节性策略，仅使用季节性信号；
             - "technical"：技术指标策略，仅使用技术指标信号；
             - "concat"：融合策略，同时考虑基差、季节性、技术指标。
     """
@@ -27,7 +28,7 @@ def run_strategy(symbol="IMIH",strategy_name="basis"):
     index_data.set_index('date', inplace=True)
 
     # 获取期货数据
-    # future_data = get_futures_data(STOCK_INDEX, START_DATE, END_DATE)
+    # futures_data = get_futures_data(STOCK_INDEX, START_DATE, END_DATE)
     futures_data = pd.read_csv(FUTURES_DATA)
     futures_data['date'] = pd.to_datetime(futures_data['date'])
     futures_data.set_index('date', inplace=True)
@@ -40,13 +41,12 @@ def run_strategy(symbol="IMIH",strategy_name="basis"):
     # Step 2:因子计算
     if strategy_name == "concat":
         basis_raw_df = calculate_basis_signal(index_data, futures_data, symbol)
-        season_raw_df = calculate_seasonal_signal(index_nv_data, symbol)
+        seasonal_raw_df = calculate_seasonal_signal(index_nv_data, symbol)
         technical_raw_df = calculate_technical_signal(index_nv_data, symbol)
-        raw_signal = extract_concat_signals(futures_nv_data,symbol,basis_raw_df,season_raw_df,technical_raw_df)
-
-    if strategy_name == "basis":
+        raw_signal = extract_concat_signals(futures_nv_data,symbol,basis_raw_df,seasonal_raw_df,technical_raw_df)
+    elif strategy_name == "basis":
         raw_signal = calculate_basis_signal(index_data, futures_data, symbol)
-    elif strategy_name == "season":
+    elif strategy_name == "seasonal":
         raw_signal = calculate_seasonal_signal(index_nv_data, symbol)
     elif strategy_name == "technical":
         raw_signal = calculate_technical_signal(index_nv_data, symbol)
@@ -59,7 +59,7 @@ def run_strategy(symbol="IMIH",strategy_name="basis"):
     # Step 3:执行策略与回测
     csv_data_source = CSVDataSource(csv_file=signal_path)
     # 初始资金10000元，每年交易日期设置为252，最后一个交易日bar平仓
-    config = StrategyConfig(initial_cash=10_000, bars_per_year=252, exit_on_last_bar=True)
+    config = StrategyConfig(initial_cash=INITIAL_CASH, bars_per_year=BARS_PER_YEAR, exit_on_last_bar=True)
     strategy = Strategy(csv_data_source, start_date=START_DATE.strftime("%m/%d/%Y"), end_date=END_DATE.strftime("%m/%d/%Y"), config=config)
     # 添加交易策略position_signal_trade和标的symbol
     strategy.add_execution(position_signal_trade, symbol)
@@ -77,4 +77,4 @@ def run_strategy(symbol="IMIH",strategy_name="basis"):
     plot_trade_nv(f'{symbol}_{strategy_name}_portfolio.csv', f'{symbol}_{strategy_name}_signal.csv')
 
 if __name__ == "__main__":
-    run_strategy(symbol="IMIH",strategy_name="basis")
+    run_strategy(symbol="IMIH",strategy_name="concat")

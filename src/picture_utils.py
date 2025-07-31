@@ -72,7 +72,7 @@ def plot_trade_nv(portfolio_csv, position_csv):
     fig.tight_layout()
 
     # 保存图像到指定文件
-    plt.savefig(f"RESULT_PATH/{symbol}_{strategy}_curve.png", dpi=300)
+    plt.savefig(f"{RESULT_PATH}/{symbol}_{strategy}_curve.png", dpi=300)
     plt.show()
 
 def plot_concat_nv(*args):

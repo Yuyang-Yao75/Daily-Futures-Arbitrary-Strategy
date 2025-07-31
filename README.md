@@ -25,13 +25,14 @@ daily_futures_arbitrary_strategy/
 │   ├── signal_utils.py        # 策略信号计算模块：基差、动量、季节性三类信号函数
 │   ├── strategy_utils.py      # 信号合成与仓位决策模块
 │   ├── backtest_utils.py      # 简单的回测引擎与绩效评估模块（可选类封装）
+│   └── picture_utils.py          # 图表绘制模块
 │   └── __init__.py            # 包结构标识文件
 │
 ├── data/
 │   ├── raw/                   # 存放原始下载数据（如 IC.csv、IF.csv）
-│   └── factor/                # 可选，保存中间计算的因子值，如年化基差等
+│   └── signal/                # 可选，保存中间计算的因子值，如年化基差等
 │
-├── output/
+├── results/
 │   └── net_value.png          # 策略净值曲线与绩效结果图表
 │
 ├── requirements.txt           # 所需依赖包（如 pandas, matplotlib）

@@ -528,7 +528,7 @@ def aggregate_to_monthly_price_change(df):
     :param df: 多空组合后的净值
     :return: 月度涨跌数据
     """
-    df = df.copy()
+    df = df.copy().reset_index()
     df["date"] = pd.to_datetime(df["date"])
     df['year'] = df['date'].dt.year
     df['month'] = df['date'].dt.month
