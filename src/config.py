@@ -19,6 +19,7 @@ from signal_utils import (
 # 策略品种设定
 STOCK_INDEX='000016.SH,000300.SH,000852.SH,000905.SH'
 # 日期设定：可自由设定回测时间
+INDEX_START_DATE=datetime.datetime(2010, 1, 1)
 START_DATE=datetime.datetime(2023, 12, 14)
 END_DATE=datetime.datetime(2025, 6, 25)
 INITIAL_CASH=10_000

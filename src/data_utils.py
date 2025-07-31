@@ -1,12 +1,12 @@
 import os
 import pandas as pd
 from datetime import datetime
-from config import CODE_MAP,AVAILABLE_PAIRS,RAW_DATA_PATH
-# from iFinDPy import *
-# from WindPy import w
+from config import CODE_MAP,AVAILABLE_PAIRS,RAW_DATA_PATH,INDEX_DATA,FUTURES_DATA
+# from iFinDPy import *#todo
+# from WindPy import w#todo
 
 #====================== 原始数据读取======================
-# def ths_login():
+# def ths_login():#todo
 #     ret = THS_iFinDLogin('ghyjsxs207', '505933')
 #     print(ret)
 #     if ret != 0:
@@ -73,7 +73,7 @@ def pivot_index_data(df, code_map):#todo
     return wide
 
 
-# #定义获取股指数据的函数
+# #定义获取股指数据的函数#todo
 # def get_stock_index_data(stock_index, start_date, end_date):
 #     """
 #     获取股指数据，如果本地存在则直接读取，否则从API获取并保存
@@ -107,12 +107,13 @@ def pivot_index_data(df, code_map):#todo
 #         index_data = data_result.data
 #         index_data["changeRatio"] = index_data["changeRatio"]/100
 #         index_data = pivot_index_data(data_result.data, CODE_MAP)
-#         index_data.to_csv(filename, index=False)
-#         index_data["time"] = pd.to_datetime(index_data["time"])
-#         index_data.set_index("time", inplace=True)
+#         index_data.to_csv(f"{filepath}/{filename}", index=False)
+#         index_data.rename(columns={'time': 'date'}, inplace=True)
+#         index_data["date"] = pd.to_datetime(index_data["date"])
+#         index_data.set_index("date", inplace=True)
 #         return index_data
 #
-# #定义获取期货数据的函数
+# #定义获取期货数据的函数#todo
 # def get_futures_data(start_date, end_date):
 #     """
 #     获取期货数据：如果本地已有缓存则加载，否则通过 Wind API 拉取并保存
@@ -135,7 +136,7 @@ def pivot_index_data(df, code_map):#todo
 #         return futures_data
 #
 #     # 否则通过 Wind API 拉取
-#     # w.start()  # 如需登录，解除注释
+#     w.start()  # 如需登录，解除注释
 #     codes = {'IC': 'IC.CFE', 'IF': 'IF.CFE', 'IH': 'IH.CFE', 'IM': 'IM.CFE'}
 #     frames = []
 #     for prefix, code in codes.items():
@@ -169,8 +170,9 @@ def pivot_index_data(df, code_map):#todo
 #     # 保存到本地缓存
 #     df_futures.to_csv(filepath, index=False)
 #     # 设置时间索引并返回
-#     df_futures['time'] = pd.to_datetime(df_futures['time'])
-#     df_futures.set_index('time', inplace=True)
+#     df_futures.rename(columns={'ltdate_new': 'date'}, inplace=True)
+#     df_futures['date'] = pd.to_datetime(df_futures['date'])
+#     df_futures.set_index('date', inplace=True)
 #     return df_futures
 
 #====================原始数据预处理====================

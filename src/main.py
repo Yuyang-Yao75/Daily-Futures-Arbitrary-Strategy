@@ -2,7 +2,7 @@ from pybroker import Strategy, StrategyConfig
 from strategy_utils import *
 from backtest_utils import *
 from picture_utils import *
-from config import INITIAL_CASH, BARS_PER_YEAR
+from config import INITIAL_CASH, BARS_PER_YEAR, INDEX_START_DATE, START_DATE, END_DATE, RESULT_PATH, AVAILABLE_STRATEGY, AVAILABLE_PAIRS
 
 def run_strategy(symbol="IMIH",strategy_name="basis"):
     """
@@ -22,13 +22,13 @@ def run_strategy(symbol="IMIH",strategy_name="basis"):
     """
     # Step 1:加载数据
     # 获取指数数据
-    # index_data = get_stock_index_data(STOCK_INDEX, START_DATE, END_DATE)
+    # index_data = get_stock_index_data(STOCK_INDEX, INDEX_START_DATE, END_DATE)#todo
     index_data = pd.read_csv(INDEX_DATA)
     index_data['date'] = pd.to_datetime(index_data['date'])
     index_data.set_index('date', inplace=True)
 
     # 获取期货数据
-    # futures_data = get_futures_data(STOCK_INDEX, START_DATE, END_DATE)
+    # futures_data = get_futures_data(STOCK_INDEX, START_DATE, END_DATE)#todo
     futures_data = pd.read_csv(FUTURES_DATA)
     futures_data['date'] = pd.to_datetime(futures_data['date'])
     futures_data.set_index('date', inplace=True)
