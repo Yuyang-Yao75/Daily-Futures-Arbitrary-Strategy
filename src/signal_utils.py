@@ -522,31 +522,50 @@ def quantile_signal(price, window):
 
 # 聚合为月度数据 - 为每个月计算价格涨跌情况
 
+# 聚合为月度数据 - 为每个月计算价格涨跌情况
 def aggregate_to_monthly_price_change(df):
     """
     为每个月计算多空组合的净值涨跌情况
     :param df: 多空组合后的净值
     :return: 月度涨跌数据
     """
-    df = df.copy().reset_index()
+    # 为日频数据添加年月信息
+    df.reset_index(inplace=True)
     df["date"] = pd.to_datetime(df["date"])
     df['year'] = df['date'].dt.year
     df['month'] = df['date'].dt.month
-    # 用groupby+agg优化
-    monthly = df.groupby(['year', 'month']).agg(
-        first_price=('close', 'first'),
-        last_price=('close', 'last'),
-        last_date=('date', 'last')
-    ).reset_index()
-    monthly['return'] = (monthly['last_price'] / monthly['first_price']) - 1
-    monthly['price_up'] = monthly['return'] > 0
-    return monthly[['year', 'month', 'return', 'price_up', 'last_date']]
+    df['day'] = df['date'].dt.day
+    # 按年月分组
+    monthly_grouped = df.groupby(['year', 'month'])
+
+    monthly_data = []
+    for (year, month), group in monthly_grouped:
+        # 按日期排序
+        group = group.sort_values('date')
+
+        # 计算月度价格变化
+        first_price = group['close'].iloc[0]
+        last_price = group['close'].iloc[-1]
+        monthly_return = (last_price / first_price) - 1
+
+        # 判断价格是涨还是跌
+        price_up = monthly_return > 0
+
+        monthly_data.append({
+            'year': year,
+            'month': month,
+            'return': monthly_return,
+            'price_up': price_up,  # True表示价格上涨，False表示价格下跌或不变
+            'last_date': group['date'].iloc[-1]
+        })
+
+    return pd.DataFrame(monthly_data)
 
 # 函数：计算到某年某月为止的历史价格涨跌胜率
 
 def calculate_price_up_win_rate(df, current_year, current_month):
     # 只包含当前月之前的历史数据
-    mask = ((df['year'] < current_year) | ((df['year'] == current_year) & (df['month'] < current_month)))
+    mask = ((df['year'] <= current_year) | ((df['year'] == current_year) & (df['month'] <= current_month)))
     historical_data = df[mask].copy()
     # 按月份分组计算价格上涨的胜率
     monthly_win_rates = {}
