@@ -1,7 +1,9 @@
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
-from config import RESULT_PATH,SIGNAL_DATA_PATH
+from config import RESULT_PATH
+from matplotlib.dates import DateFormatter
 # plt.rcParams['font.sans-serif'] = ['simsun']  # 中文字体
 from pylab import mpl
 mpl.rcParams['font.sans-serif'] = ['FZKai-Z03S']
@@ -74,6 +76,68 @@ def plot_trade_nv(portfolio_csv, position_csv):
     # 保存图像到指定文件
     plt.savefig(f"{RESULT_PATH}/{symbol}_{strategy}_curve.png", dpi=300)
     plt.show()
+
+def plot_multiple_strategies(portfolio_files:dict,
+                             result_path:str = RESULT_PATH):
+    """
+    将多条策略的净值曲线绘制在同一张图上进行对比。
+
+    参数
+    ----
+    portfolio_files : dict
+        键为图例标签（legend），值为对应的 portfolio CSV 文件名（不含路径）。
+        例如：
+            {
+                "合成信号_仓位调整": "ICIF_concat_portfolio.csv",
+                "basis_position":      "ICIF_basis_portfolio.csv",
+                "tech_position":       "ICIF_technical_portfolio.csv",
+                "season_position":     "ICIF_seasonal_portfolio.csv",
+            }
+    result_path : str
+        CSV 文件所在目录。
+    """
+    fig,ax = plt.subplots(figsize=(10,8))
+
+    first_fname = list(portfolio_files.values())[0]  # "ICIF_concat_portfolio.csv"
+    symbol = first_fname.split('_')[0]
+    output_file = f"{symbol}_combined_curve.png"
+    # 给每条曲线定义样式
+    styles = {
+        "合成信号_仓位调整": {"color": "red", "linewidth": 2.5},
+        "basis_position": {"color": "gray", "linewidth": 1.5},
+        "tech_position": {"color": "#ff9999", "linestyle": "--", "linewidth": 1.5},
+        "season_position": {"color": "black", "linestyle": "--", "linewidth": 1.5},
+    }
+
+    # 逐条读取、归一化、绘图
+    for label, fname in portfolio_files.items():
+        fp = os.path.join(result_path, fname)
+        df = pd.read_csv(fp, parse_dates=['date'])
+        df.sort_values('date', inplace=True)
+        # 归一化净值
+        df['nv'] = df['market_value'] / df['market_value'].iloc[0]
+
+        # 应用样式
+        style = styles.get(label, {})
+        ax.plot(df['date'], df['nv'], label=label, **style)
+
+    # 坐标轴与网格
+    ax.set_xlabel("Date")
+    ax.set_ylabel("净值")
+    ax.xaxis.set_major_formatter(DateFormatter("%Y%m"))
+    ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.7)
+    ax.set_title(f"{symbol} 合并曲线")
+
+    # 图例
+    ax.legend(loc="upper left")
+
+    # 紧凑布局 & 保存 & 展示
+    fig.tight_layout()
+    save_path = os.path.join(result_path, output_file)
+    plt.savefig(save_path, dpi=300)
+    plt.show()
+
+    print(f"已保存合并图到：{save_path}")
 
 def plot_concat_nv(*args):
     result = []
