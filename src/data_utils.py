@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from datetime import datetime
-from config import CODE_MAP,AVAILABLE_PAIRS,RAW_DATA_PATH,INDEX_DATA,FUTURES_DATA
+from config import CODE_MAP,AVAILABLE_PAIRS,RAW_DATA_PATH,RESULT_PATH,INDEX_DATA,FUTURES_DATA
 # from iFinDPy import *#todo
 # from WindPy import w#todo
 
@@ -261,3 +261,38 @@ def generate_ohlc(df_nv:pd.DataFrame,prefix:str)->pd.DataFrame:#todo
     df['date']=pd.to_datetime(df['date'])
     df.set_index('date',inplace=True)
     return df
+
+#======================提取回测数据=========================
+def get_concat_nv_data(available_pairs:str = AVAILABLE_PAIRS,
+                       result_path:str = RESULT_PATH):
+    """
+    读取所有品种的 '{pair}_concat_portfolio.csv'，提取 market_value 计算净值，
+    并合并到一个 DataFrame 中。
+
+    参数
+    ----
+    available_pairs : list of str
+        所有品种代码列表，比如 ["ICIF", "IFIH", ...]
+    result_path : str
+        存放 CSV 文件的目录
+
+    返回
+    ----
+    pd.DataFrame
+        包含列： date, {pair1}_nv, {pair2}_nv, ...
+    """
+    dfs = []
+    for pair in available_pairs:
+        fn = f"{pair}_concat_portfolio.csv"
+        fp = os.path.join(result_path, fn)
+        df = pd.read_csv(fp,parse_dates=["date"])
+        df.sort_values("date", inplace=True)
+
+        df[f"{pair}_nv"] = df["market_value"]/df["market_value"].iloc[0]
+        df_pair = df[['date',f"{pair}_nv"]].set_index('date')
+        dfs.append(df_pair)
+
+    combined = pd.concat(dfs,axis = 1)
+    combined.reset_index(inplace = True)
+
+    return combined

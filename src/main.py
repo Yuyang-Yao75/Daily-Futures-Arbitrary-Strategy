@@ -124,7 +124,18 @@ def run_strategy(symbol="IMIH",strategy_name="basis"):
     plot_trade_nv(f'{symbol}_{strategy_name}_portfolio.csv', f'{symbol}_{strategy_name}_signal.csv')
 
 if __name__ == "__main__":
+    # #========= 遍历回测 ==========
+    # for symbol in AVAILABLE_PAIRS:
+    #     for strategy_name in AVAILABLE_STRATEGY:
+    #         print(f"...正在对{symbol}执行{strategy_name}策略")
+    #         run_strategy(symbol=symbol,strategy_name=strategy_name)
+
+    #========= 整合绘图 ==========#todo 后续可以融合到 run_strategy 中
     for symbol in AVAILABLE_PAIRS:
-        for strategy_name in AVAILABLE_STRATEGY:
-            print(f"...正在对{symbol}执行{strategy_name}策略")
-            run_strategy(symbol=symbol,strategy_name=strategy_name)
+        portfolio_files = {
+            "合成信号_仓位调整": f"{symbol}_concat_portfolio.csv",
+            "basis_position": f"{symbol}_basis_portfolio.csv",
+            "tech_position": f"{symbol}_technical_portfolio.csv",
+            "season_position": f"{symbol}_seasonal_portfolio.csv",
+        }
+        plot_multiple_strategies(portfolio_files)
