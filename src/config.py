@@ -40,6 +40,7 @@ RESULT_PATH = os.path.abspath(os.path.join(PROJECT_PATH, "..", 'results'))
 
 RAW_DATA_PATH=os.path.join(DATA_PATH, 'raw')
 SIGNAL_DATA_PATH=os.path.join(DATA_PATH, 'signal')
+FACTOR_SELECTION_PATH=os.path.join(RESULT_PATH, 'factor_selection')
 # 原始数据文件路径：正常使用时将下方注释取消并删除现有 INDEX_DATA 部分
 FUTURES_DATA = os.path.join(RAW_DATA_PATH, f'futures_data_{START_DATE.strftime("%Y%m%d")}_{END_DATE.strftime("%Y%m%d")}.csv')
 # INDEX_DATA = os.path.join(RAW_DATA_PATH, f'index_data_{START_DATE.strftime("%Y%m%d")}_{END_DATE.strftime("%Y%m%d")}.csv')
