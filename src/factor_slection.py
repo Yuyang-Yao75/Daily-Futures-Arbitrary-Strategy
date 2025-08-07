@@ -18,7 +18,9 @@ from config import (
     END_DATE,
     INITIAL_CASH,
     START_DATE,
-    FACTOR_SELECTION_PATH
+    FACTOR_SELECTION_PATH,
+    FUNC_MAP,
+    PARAMS_MAP
 )
 from data_utils import generate_ohlc, get_nv_data  # type: ignore
 
@@ -212,48 +214,4 @@ if __name__ == "__main__":  # pragma: no cover - usage example
 
     from signal_utils import *
 
-    funcs = {
-        'bollinger_r': bollinger_r,
-        'bollinger_MOM': bollinger_mom,
-        'DoubleMA':generate_ma_signal,
-        'EXPWMA':generate_ma_signal,
-        'Hilbert_Transform':generate_ma_signal,
-        'Kaufman':generate_ma_signal,
-        'MESA_Adaptive': generate_ma_signal,
-        'MIDPOINT':generate_ma_signal,
-        'TRIX':generate_ma_signal,
-        'WMA':generate_ma_signal,
-        'MACD': macd_signal,
-        'ROC_R': roc_r,
-        'ROC_MOM': roc_mom,
-        'MOM_r': mom_r,
-        "RSI": rsi_r,
-        'CMO': cmo_r,
-        'Quantile': quantile_signal,
-        'continuous': continuous_signal,
-        'continuous_r': continuous_r
-    }
-    params = {
-        'bollinger_r': {"window": [3,5,10,20,30,40,50,60,120], "num_std_upper": [1,1.5,2], "num_std_lower": [1,1.5,2]},
-        'bollinger_MOM': {"window": [3,5,10,20,30,40,50,60,120], "num_std_upper": [1,1.5,2], "num_std_lower": [1,1.5,2]},
-        'DoubleMA':{"short_window":[3,5,10,20,30,40,50,60,120,140,160,200],  "long_window":[5,10,20,30,40,50,60,80,100,120,140,160,200], 'ma_type':['DoubleMA']},
-        'EXPWMA':{"short_window":[3,5,10,20,30,40,50,60,120,140,160,200],  "long_window":[5,10,20,30,40,50,60,80,100,120,140,160,200], 'ma_type': ['EXPWMA']},
-        'Hilbert_Transform':{"short_window":[1,2,3,4,5,10,20,60,120,240], 'ma_type': ['Hilbert_Transform']},
-        'Kaufman':{"short_window":[3,5,10,20,30,40,50,60,120,140,160,200],  "long_window":[5,10,20,30,40,50,60,80,100,120,140,160,200],  'ma_type': ['Kaufman']},
-        'MESA_Adaptive': {"short_window": [3], "long_window": [20], 'ma_type': ['MESA_Adaptive'],
-                        "fastlimit": [0.1, 0.3, 0.5, 0.7, 0.9], "slowlimit": [0.01, 0.03, 0.05, 0.1, 0.2,0.4,0.6,0.8]},
-        'MIDPOINT':{"short_window":[3,5,10,20,30,40,50,60,120,140,160,200],  "long_window":[5,10,20,30,40,50,60,80,100,120,140,160,200],  'ma_type': ['MidPoint']},
-        'TRIX':{"short_window":[3,5,10,20,30,40,50,60,120,140,160,200],  "long_window":[5,10,20,30,40,50,60,80,100,120,140,160,200],  'ma_type': ['TRIX'], 'vfactor': [0.6,0.8,1]},
-        'WMA':{"short_window":[3,5,10,20,30,40,50,60,120,140,160,200],  "long_window":[5,10,20,30,40,50,60,80,100,120,140,160,200],  'ma_type': ['WMA']},
-        'MACD':{"short_window":[7.8,9,10,12,13],"long_window":[24,26,30,34,40],"signalperiod":[6,9,12]},
-        'ROC_R':{"window": [3,5,10,20,30,40,50,60,120,140,160,200]},
-        'ROC_MOM':{"window": [3,5,10,20,30,40,50,60,120,140,160,200]},
-        'MOM_r':{"period": [3,5,10,20,30,40,50,60,120,140,160,200],"threshold": [5,10,15,20,25,30]},
-        'RSI': {"window": [3,5,10,20,30,40,50,60,120,140,160,200],"lower": [5,10,15,20,25,30], "middle": [50]},
-        'CMO': {"window": [3,5,10,20,30,40,50,60,120,140,160,200],"upper": [50,55,60,65,70,75,80,85], "middle": [0]},
-        'Quantile': {"window": [20,60,90,100,150,200,250,500]},
-        'continuous': {"window": [1,2,3,4,5,6,7,8,9,10,15,20]},
-        'continuous_r': {"window": [1,2,3,4,5,6,7,8,9,10,15,20]}
-    }
-
-    select_factors(index_nv, "IFIH", funcs, params)
+    select_factors(index_nv, "IFIH", FUNC_MAP, PARAMS_MAP)
