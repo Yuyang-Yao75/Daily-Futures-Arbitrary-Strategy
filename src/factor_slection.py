@@ -7,7 +7,7 @@ import json
 import os
 from collections import OrderedDict
 from itertools import product
-from typing import Callable, Dict, Iterable, List, Tuple, Any
+from typing import Callable, Dict, Iterable, List, Any
 
 import pandas as pd
 from pybroker import Strategy, StrategyConfig
@@ -82,10 +82,10 @@ def select_factors(
     symbol: str,
     factor_funcs: Dict[str, Callable[..., pd.Series]],
     param_spaces: Dict[str, Dict[str, Iterable]],
-    metrics_to_optimize: List[str]=["sharpe"],
-    metric_thresholds: Dict[str, float]={"sharpe": 0.5},
+    metrics_to_optimize: List[str]=None,
+    metric_thresholds: Dict[str, float]=None,
 ) -> OrderedDict[str,Any]:
-    """执行网格搜索优化和因子筛选。
+    """执行网格搜索优化和因子筛选。两轮筛选：先基于平均指标筛选因子，再选出每个因子的最优参数。
 
     参数
     ----------
@@ -105,15 +105,28 @@ def select_factors(
     OrderedDict
         选中的因子，格式为 {因子名: (函数, 最佳参数)}。
     """
+    print(f"\n{'='*50}")
+    print(f"开始因子选择流程 - 交易对: {symbol}")
+    # 初始化默认参数
+    if metrics_to_optimize is None:
+        metrics_to_optimize = ["sharpe"]
+    if metric_thresholds is None:
+        metric_thresholds = {"sharpe": 0.5}
+        
+    print(f"待测试因子数量: {len(factor_funcs)}")
+    print(f"优化目标指标: {', '.join(metrics_to_optimize)}")
+    print(f"指标阈值要求: {metric_thresholds}")
     os.makedirs(FACTOR_SELECTION_PATH, exist_ok=True)
-    selected: "OrderedDict[str, Any]" = OrderedDict()
-
+    # 1. 收集所有因子、参数和指标
+    records: List[Dict[str, Any]] = []
+    print("\n" + "=" * 20 + " 开始网格搜索 " + "=" * 20)
     for name, func in factor_funcs.items():
         grid = _grid(param_spaces.get(name, {}))
-        results:List[Dict[str, Any]] = []
-
-        for params_kwargs in grid:
-            # (1) 生成信号并回测
+        param_count = len(grid)
+        print(f"\n处理因子: {name} (共 {param_count} 组参数组合)")
+        for i, params_kwargs in enumerate(grid, 1):
+            print(f"\n参数组合 {i}/{param_count}: {params_kwargs}")
+            # 生成信号并回测
             ohlc = generate_ohlc(index_nv_df, symbol)
             ohlc["position_signal"] = func(ohlc["close"], **params_kwargs)
             ohlc["symbol"] = symbol
@@ -123,37 +136,52 @@ def select_factors(
             df_signal = df_signal[["date", "symbol", "open", "high", "low", "close", "position_signal"]]
 
             tag = f"{name}_" + "_".join(f"{k}{v}" for k, v in params_kwargs.items())
+            print(f"执行回测: {tag}")
             metrics_df = _run_backtest(df_signal.set_index("date"), symbol, tag)
-            # (2) 提取所有目标指标
+            # 提取所有目标指标
             metric_values = {
                 m:_extract_metric(metrics_df, m) for m in metrics_to_optimize
             }
-            # (3) 记录一条结果
-            results.append({
-                "params":params_kwargs,
+            print(f"指标结果: {metric_values}")
+            # 记录一条结果
+            records.append({
+                "name": name,
+                "func": func,
+                "params": params_kwargs,
                 **metric_values
             })
-        # (4) 组织成 DataFrame，方便筛选
-        results_df = pd.DataFrame(results)
+    print("\n" + "=" * 20 + " 分析结果 " + "=" * 20)
+    results_df = pd.DataFrame(records)
+    selected: "OrderedDict[str, Any]" = OrderedDict()
+    # 2. 平均指标筛选 #todo 后续改进筛选标准时需重构该部分代码
+    primary = metrics_to_optimize[0]
+    avg_df = results_df.groupby("name")[primary].mean().reset_index()
+    good = avg_df[avg_df[primary] > metric_thresholds.get(primary, float("-inf"))]["name"]
+    print(f"\n初始因子数量: {len(factor_funcs)}")
+    print(f"通过{primary}阈值({metric_thresholds.get(primary)})的因子数量: {len(good)}")
+    # 3. 按因子筛选最优参数
+    print("\n" + "=" * 20 + " 选择最优参数 " + "=" * 20)
+    for name in good:
+        sub = results_df[results_df["name"] == name]
+        best = sub.sort_values(primary, ascending=False).iloc[0]
 
-        # (5) 应用阈值过滤
-        mask = pd.Series(True, index=results_df.index)
-        for m,th in metric_thresholds.items():
-            mask &= results_df[m] >= th
-        filtered = results_df[mask]
-        if filtered.empty:
-            continue
+        print(f"\n因子: {name}")
+        print(f"最佳参数: {best['params']}")
+        print(f"最佳指标: {{", end="")
+        for m in metrics_to_optimize:
+            print(f" {m}: {best[m]:.4f}", end="")
+        print(" }")
 
-        # (6) 多指标排序：按第一个指标降序，也可以自定义权重
-        best = filtered.sort_values(by=metrics_to_optimize, ascending=False).iloc[0]
         selected[name] = {
-            "func": func,
+            "func": best["func"],
             "best_params": best["params"],
             "best_metrics": {m: best[m] for m in metrics_to_optimize}
         }
 
-        # （可选）保存中间结果
-        results_df.to_csv(os.path.join(FACTOR_SELECTION_PATH, f"{symbol}_{name}_grid_results.csv"), index=False)
+    # （可选）保存中间结果
+    save_path = os.path.join(FACTOR_SELECTION_PATH, f"{symbol}_grid_results.csv")
+    results_df.to_csv(save_path, index=False)
+    print(f"\n保存详细回测结果到: {save_path}")
 
     # 最后把选中结果写成 JSON
     json_ready = {
@@ -164,8 +192,14 @@ def select_factors(
         }
         for k, v in selected.items()
     }
-    with open(os.path.join(FACTOR_SELECTION_PATH, f"{symbol}_selected_factors.json"), "w", encoding="utf-8") as f:
+    json_path = os.path.join(FACTOR_SELECTION_PATH, f"{symbol}_selected_factors.json")
+    with open(json_path, "w", encoding="utf-8") as f:
         json.dump(json_ready, f, ensure_ascii=False, indent=2)
+
+    print(f"保存选中因子到: {json_path}")
+    print(f"\n{'=' * 50}")
+    print(f"因子选择完成! 共选中 {len(selected)} 个因子")
+    print("=" * 50 + "\n")
 
     return selected
 
@@ -176,9 +210,20 @@ if __name__ == "__main__":  # pragma: no cover - usage example
     index_df = pd.read_csv(INDEX_DATA, parse_dates=["date"]).set_index("date")
     index_nv = get_nv_data(index_df, "index")
 
-    from signal_utils import rsi_r
+    from signal_utils import *
 
-    funcs = {"RSI": rsi_r}
-    params = {"RSI": {"window": [14, 20], "upper": [70], "lower": [30], "middle": [50]}}
+    funcs = {
+        'bolling_r': bollinger_r,
+        'bolling_MOM': bollinger_MOM,
+        'MESA_Adaptive': generate_ma_signal,
+        "RSI": rsi_r
+    }
+    params = {
+        'bollinger_r': {"window": [3,5,10,20,30,40,50,60,120], "num_std_upper": [1,1.5,2], "num_std_lower": [1,1.5,2]},
+        'bollinger_MOM': {"window": [3,5,10,20,30,40,50,60,120], "num_std_upper": [1,1.5,2], "num_std_lower": [1,1.5,2]},
+        "MESA_Adaptive": {"short_window": [3], "long_window": [20], 'ma_type': ['MESA_Adaptive'],
+                        "fastlimit": [0.1, 0.3, 0.5, 0.7], "slowlimit": [0.01, 0.03]},
+        "RSI": {"window": [3,5,10], "upper": [95,90], "lower": [5,10], "middle": [50]}
+    }
 
     select_factors(index_nv, "IFIH", funcs, params)
