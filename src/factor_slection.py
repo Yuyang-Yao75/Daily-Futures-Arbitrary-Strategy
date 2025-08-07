@@ -128,7 +128,7 @@ def select_factors(
             print(f"\n参数组合 {i}/{param_count}: {params_kwargs}")
             # 生成信号并回测
             ohlc = generate_ohlc(index_nv_df, symbol)
-            ohlc["position_signal"] = func(ohlc["close"], **params_kwargs)
+            ohlc["position_signal"] = func(ohlc, **params_kwargs)
             ohlc["symbol"] = symbol
             df_signal = ohlc[["open", "high", "low", "close", "position_signal"]].copy()
             df_signal["symbol"] = symbol
@@ -155,8 +155,8 @@ def select_factors(
     selected: "OrderedDict[str, Any]" = OrderedDict()
     # 2. 平均指标筛选 #todo 后续改进筛选标准时需重构该部分代码
     primary = metrics_to_optimize[0]
-    avg_df = results_df.groupby("name")[primary].mean().reset_index()
-    good = avg_df[avg_df[primary] > metric_thresholds.get(primary, float("-inf"))]["name"]
+    max_df = results_df.groupby("name")[primary].max().reset_index()
+    good = max_df[max_df[primary] > metric_thresholds.get(primary, float("-inf"))]["name"]
     print(f"\n初始因子数量: {len(factor_funcs)}")
     print(f"通过{primary}阈值({metric_thresholds.get(primary)})的因子数量: {len(good)}")
     # 3. 按因子筛选最优参数
@@ -213,17 +213,47 @@ if __name__ == "__main__":  # pragma: no cover - usage example
     from signal_utils import *
 
     funcs = {
-        'bolling_r': bollinger_r,
-        'bolling_MOM': bollinger_MOM,
+        'bollinger_r': bollinger_r,
+        'bollinger_MOM': bollinger_mom,
+        'DoubleMA':generate_ma_signal,
+        'EXPWMA':generate_ma_signal,
+        'Hilbert_Transform':generate_ma_signal,
+        'Kaufman':generate_ma_signal,
         'MESA_Adaptive': generate_ma_signal,
-        "RSI": rsi_r
+        'MIDPOINT':generate_ma_signal,
+        'TRIX':generate_ma_signal,
+        'WMA':generate_ma_signal,
+        'MACD': macd_signal,
+        'ROC_R': roc_r,
+        'ROC_MOM': roc_mom,
+        'MOM_r': mom_r,
+        "RSI": rsi_r,
+        'CMO': cmo_r,
+        'Quantile': quantile_signal,
+        'continuous': continuous_signal,
+        'continuous_r': continuous_r
     }
     params = {
         'bollinger_r': {"window": [3,5,10,20,30,40,50,60,120], "num_std_upper": [1,1.5,2], "num_std_lower": [1,1.5,2]},
         'bollinger_MOM': {"window": [3,5,10,20,30,40,50,60,120], "num_std_upper": [1,1.5,2], "num_std_lower": [1,1.5,2]},
-        "MESA_Adaptive": {"short_window": [3], "long_window": [20], 'ma_type': ['MESA_Adaptive'],
-                        "fastlimit": [0.1, 0.3, 0.5, 0.7], "slowlimit": [0.01, 0.03]},
-        "RSI": {"window": [3,5,10], "upper": [95,90], "lower": [5,10], "middle": [50]}
+        'DoubleMA':{"short_window":[3,5,10,20,30,40,50,60,120,140,160,200],  "long_window":[5,10,20,30,40,50,60,80,100,120,140,160,200], 'ma_type':['DoubleMA']},
+        'EXPWMA':{"short_window":[3,5,10,20,30,40,50,60,120,140,160,200],  "long_window":[5,10,20,30,40,50,60,80,100,120,140,160,200], 'ma_type': ['EXPWMA']},
+        'Hilbert_Transform':{"short_window":[1,2,3,4,5,10,20,60,120,240], 'ma_type': ['Hilbert_Transform']},
+        'Kaufman':{"short_window":[3,5,10,20,30,40,50,60,120,140,160,200],  "long_window":[5,10,20,30,40,50,60,80,100,120,140,160,200],  'ma_type': ['Kaufman']},
+        'MESA_Adaptive': {"short_window": [3], "long_window": [20], 'ma_type': ['MESA_Adaptive'],
+                        "fastlimit": [0.1, 0.3, 0.5, 0.7, 0.9], "slowlimit": [0.01, 0.03, 0.05, 0.1, 0.2,0.4,0.6,0.8]},
+        'MIDPOINT':{"short_window":[3,5,10,20,30,40,50,60,120,140,160,200],  "long_window":[5,10,20,30,40,50,60,80,100,120,140,160,200],  'ma_type': ['MidPoint']},
+        'TRIX':{"short_window":[3,5,10,20,30,40,50,60,120,140,160,200],  "long_window":[5,10,20,30,40,50,60,80,100,120,140,160,200],  'ma_type': ['TRIX'], 'vfactor': [0.6,0.8,1]},
+        'WMA':{"short_window":[3,5,10,20,30,40,50,60,120,140,160,200],  "long_window":[5,10,20,30,40,50,60,80,100,120,140,160,200],  'ma_type': ['WMA']},
+        'MACD':{"short_window":[7.8,9,10,12,13],"long_window":[24,26,30,34,40],"signalperiod":[6,9,12]},
+        'ROC_R':{"window": [3,5,10,20,30,40,50,60,120,140,160,200]},
+        'ROC_MOM':{"window": [3,5,10,20,30,40,50,60,120,140,160,200]},
+        'MOM_r':{"period": [3,5,10,20,30,40,50,60,120,140,160,200],"threshold": [5,10,15,20,25,30]},
+        'RSI': {"window": [3,5,10,20,30,40,50,60,120,140,160,200],"lower": [5,10,15,20,25,30], "middle": [50]},
+        'CMO': {"window": [3,5,10,20,30,40,50,60,120,140,160,200],"upper": [50,55,60,65,70,75,80,85], "middle": [0]},
+        'Quantile': {"window": [20,60,90,100,150,200,250,500]},
+        'continuous': {"window": [1,2,3,4,5,6,7,8,9,10,15,20]},
+        'continuous_r': {"window": [1,2,3,4,5,6,7,8,9,10,15,20]}
     }
 
     select_factors(index_nv, "IFIH", funcs, params)

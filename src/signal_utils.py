@@ -11,31 +11,32 @@ def bollinger_r(price, window, num_std_upper, num_std_lower):
     :param num_std_lower: float, 下轨的标准差倍数
     :return: pandas Series, 信号值（1: 开多, -1: 开空, 2: 平多, -2: 平空, 0: 无操作）
     """
+    close = price["close"]
     upperband, middleband, lowerband = talib.BBANDS(
-        price,
+        close,
         timeperiod=window,
         nbdevup=num_std_upper,
         nbdevdn=num_std_lower,
         matype=0
     )
 
-    signal = pd.Series(0, index=price.index)
+    signal = pd.Series(0, index=close.index)
     current_position = 0
 
-    for i in range(window, len(price)):
+    for i in range(window, len(close)):
         # 跳过NaN值
-        if pd.isna(upperband[i]) or pd.isna(middleband[i]) or pd.isna(lowerband[i]):
+        if pd.isna(upperband.iloc[i]) or pd.isna(middleband.iloc[i]) or pd.isna(lowerband.iloc[i]):
             continue
 
         # 平仓逻辑优先
         if current_position == -1:
-            if price[i] < middleband[i] and price[i - 1] >= middleband[i - 1]: # 平空
+            if close.iloc[i] < middleband.iloc[i] and close.iloc[i - 1] >= middleband.iloc[i - 1]: # 平空
                 signal.iloc[i] = 0
                 current_position = 0
             else:
                 signal.iloc[i] = current_position
         elif current_position == 1:
-            if price[i] > middleband[i] and price[i - 1] <= middleband[i - 1]: # 平多
+            if close.iloc[i] > middleband.iloc[i] and close.iloc[i - 1] <= middleband.iloc[i - 1]: # 平多
                 signal.iloc[i] = 0
                 current_position = 0
             else:
@@ -43,10 +44,10 @@ def bollinger_r(price, window, num_std_upper, num_std_lower):
 
         # 开仓逻辑（仅在无仓位时）
         if current_position == 0:
-            if price[i] > upperband[i]: # 开空
+            if close.iloc[i] > upperband.iloc[i]: # 开空
                 signal.iloc[i] = -1
                 current_position = -1
-            elif price[i] < lowerband[i]: # 开多
+            elif close.iloc[i] < lowerband.iloc[i]: # 开多
                 signal.iloc[i] = 1
                 current_position = 1
 
@@ -54,7 +55,7 @@ def bollinger_r(price, window, num_std_upper, num_std_lower):
 
 # ###################### 动量 ######################
 #动量型布林带信号：最新价突破布林带上界发出做多信号，突破下界发出做空信号，最新价由上到下突破中轨，则平多；最新价由下到上突破中轨，则平空
-def bollinger_MOM(price, window, num_std_upper, num_std_lower):
+def bollinger_mom(price, window, num_std_upper, num_std_lower):
     """
     动量布林带信号生成
     :param price: pandas Series, 股票收盘价
@@ -63,31 +64,32 @@ def bollinger_MOM(price, window, num_std_upper, num_std_lower):
     :param num_std_lower: float, 下轨的标准差倍数
     :return: pandas Series, 信号值（1: 开多, -1: 开空, 2: 平多, -2: 平空, 0: 无操作）
     """
+    close = price["close"]
     upperband, middleband, lowerband = talib.BBANDS(
-        price,
+        close,
         timeperiod=window,
         nbdevup=num_std_upper,
         nbdevdn=num_std_lower,
         matype=0
     )
 
-    signal = pd.Series(0, index=price.index)
+    signal = pd.Series(0, index=close.index)
     current_position = 0
 
-    for i in range(window, len(price)):
+    for i in range(window, len(close)):
         # 跳过NaN值
-        if pd.isna(upperband[i]) or pd.isna(middleband[i]) or pd.isna(lowerband[i]):
+        if pd.isna(upperband.iloc[i]) or pd.isna(middleband.iloc[i]) or pd.isna(lowerband.iloc[i]):
             continue
 
         # 平仓逻辑优先
         if current_position == -1:
-            if price[i] > middleband[i] and price[i - 1] <= middleband[i - 1]: # 平空
+            if close.iloc[i] > middleband.iloc[i] and close.iloc[i - 1] <= middleband.iloc[i - 1]: # 平空
                 signal.iloc[i] = 0
                 current_position = 0
             else:
                 signal.iloc[i] = current_position
         elif current_position == 1:
-            if price[i] < middleband[i] and price[i - 1] >= middleband[i - 1]: # 平多
+            if close.iloc[i] < middleband.iloc[i] and close.iloc[i - 1] >= middleband.iloc[i - 1]: # 平多
                 signal.iloc[i] = 0
                 current_position = 0
             else:
@@ -95,34 +97,35 @@ def bollinger_MOM(price, window, num_std_upper, num_std_lower):
 
         # 开仓逻辑（仅在无仓位时）
         if current_position == 0:
-            if price[i] > upperband[i]: # 开多
+            if close.iloc[i] > upperband.iloc[i]: # 开多
                 signal.iloc[i] = 1
                 current_position = 1
-            elif price[i] < lowerband[i]: # 开空
+            elif close.iloc[i] < lowerband.iloc[i]: # 开空
                 signal.iloc[i] = -1
                 current_position = -1
 
     return signal
 
 #动量型 ROC 信号：过去 x 天上涨则发出做多信号，过去 x 天下跌则发出做空信号
-def roc_MOM(price, window):
+def roc_mom(price, window):
     """
     ROC 动量信号生成
     :param price: pandas Series, 股票收盘价
     :param window: int, ROC 计算的回看周期（过去 x 天）
     :return: pandas Series, 信号值（1: 做多, -1: 做空, 0: 无操作）
     """
-    roc = talib.ROC(price, timeperiod=window)
-    signal = pd.Series(0, index=price.index)
+    close = price["close"]
+    roc = talib.ROC(close, timeperiod=window)
+    signal = pd.Series(0, index=close.index)
 
     current_position = 0  # 追踪当前仓位
 
-    for i in range(window, len(price)):
+    for i in range(window, len(close)):
         # 检测反向信号强制平仓
-        if current_position == 1 and roc[i] <= 0:
+        if current_position == 1 and roc.iloc[i] <= 0:
             signal.iloc[i] = 0
             current_position = 0
-        elif current_position == -1 and roc[i] >= 0:
+        elif current_position == -1 and roc.iloc[i] >= 0:
             signal.iloc[i] = 0
             current_position = 0
 
@@ -148,17 +151,18 @@ def continuous_signal(price, window):
     :return: pandas Series, 信号值（1: 做多, -1: 做空, 0: 平仓）
     """
     # 计算每天的涨跌方向 (1 表示上涨, -1 表示下跌)
-    daily_change = price.diff().apply(lambda x: 1 if x > 0 else (-1 if x < 0 else 0))
+    close = price["close"]
+    daily_change = close.diff().apply(lambda x: 1 if x > 0 else (-1 if x < 0 else 0))
 
     # 计算过去 x 天内的上涨天数和下跌天数
     up_days = daily_change.rolling(window).apply(lambda x: sum(x > 0), raw=True)
     down_days = daily_change.rolling(window).apply(lambda x: sum(x < 0), raw=True)
 
     # 初始化信号
-    signal = pd.Series(0, index=price.index)
+    signal = pd.Series(0, index=close.index)
     current_position = 0
     # 信号生成
-    for i in range(window, len(price)):
+    for i in range(window, len(close)):
         # 提取第 i 天的 up_days 和 down_days 值
         up_days_i = up_days.iloc[i]
         down_days_i = down_days.iloc[i]
@@ -193,16 +197,16 @@ def continuous_signal(price, window):
 
 # ###################### 均线 ######################
 
-def calculate_ma_talib(price, window, ma_type):
+def calculate_ma_talib(close, window, ma_type):
     """支持多种均线类型的统一接口"""
     ma_type = ma_type.upper()
 
     calc_map = {
-        "DOUBLEMA": lambda: talib.DEMA(price, window),
-        "WMA": lambda: talib.WMA(price, window),
-        "EXPWMA": lambda: talib.EMA(price, window),
-        "KAUFMAN": lambda: talib.KAMA(price, window),
-        "MIDPOINT": lambda: talib.MIDPOINT(price, window)
+        "DOUBLEMA": lambda: talib.DEMA(close, window),
+        "WMA": lambda: talib.WMA(close, window),
+        "EXPWMA": lambda: talib.EMA(close, window),
+        "KAUFMAN": lambda: talib.KAMA(close, window),
+        "MIDPOINT": lambda: talib.MIDPOINT(close, window)
     }
 
     if ma_type not in calc_map:
@@ -221,25 +225,26 @@ def generate_ma_signal(price, short_window, long_window, ma_type, fastlimit=0.1,
                 "Kaufman", "MESA_Adaptive", "MidPoint", "TRIX")
     """
     # Hilbert变换特殊处理
+    close = price["close"]
     if ma_type == "Hilbert_Transform":
-        short_ma = talib.HT_TRENDLINE(price)
+        short_ma = talib.HT_TRENDLINE(close)
         long_ma = short_ma.shift(short_window)  # 使用short_window作为偏移量
     elif ma_type == "MESA_Adaptive":
-        short_ma, long_ma = talib.MAMA(price, fastlimit, slowlimit)
+        short_ma, long_ma = talib.MAMA(close, fastlimit, slowlimit)
     elif ma_type == "TRIX":
-        short_ma = talib.T3(price, short_window, vfactor)
-        long_ma = talib.T3(price, long_window, vfactor)
+        short_ma = talib.T3(close, short_window, vfactor)
+        long_ma = talib.T3(close, long_window, vfactor)
     else:
-        short_ma = calculate_ma_talib(price, short_window, ma_type)
-        long_ma = calculate_ma_talib(price, long_window, ma_type)
+        short_ma = calculate_ma_talib(close, short_window, ma_type)
+        long_ma = calculate_ma_talib(close, long_window, ma_type)
 
     # 信号生成逻辑
-    signal = pd.Series(0, index=price.index)
+    signal = pd.Series(0, index=close.index)
     current_position = 0  # 0-空仓 1-多仓 -1-空仓
     valid = short_ma.notna() & long_ma.notna()
 
-    for i in range(1, len(price)):  # 从1开始比较交叉
-        if valid[i] and valid[i - 1]:
+    for i in range(1, len(close)):  # 从1开始比较交叉
+        if valid.iloc[i] and valid.iloc[i - 1]:
             prev_short, curr_short = short_ma.iloc[i - 1], short_ma.iloc[i]
             prev_long, curr_long = long_ma.iloc[i - 1], long_ma.iloc[i]
 
@@ -274,16 +279,17 @@ def macd_signal(price, short_window=12, long_window=26, signalperiod=9):
     :return: 交易信号（1: 做多, -1: 做空, 0: 无操作）
     """
     # 计算MACD指标
-    dif, dea, macd = talib.MACD(price,
+    close = price["close"]
+    dif, dea, macd = talib.MACD(close,
                                 fastperiod=short_window,
                                 slowperiod=long_window,
                                 signalperiod=signalperiod)
 
-    signal = pd.Series(0, index=price.index)
+    signal = pd.Series(0, index=close.index)
     current_position = 0  # 0: 空仓，1: 多仓，-1:空仓
     valid = dif.notna() & dea.notna() & macd.notna()
 
-    for i in range(len(price)):
+    for i in range(len(close)):
         if valid[i]:
             dif_val = dif.iloc[i]
             dea_val = dea.iloc[i]
@@ -318,11 +324,12 @@ def roc_r(price, window):
     :return: pandas Series, 信号值（1: 做多, -1: 做空, 0: 无操作）
     """
     # 使用TA-Lib计算ROC
-    roc = talib.ROC(price, timeperiod=window)
-    signal = pd.Series(0, index=price.index)
+    close = price["close"]
+    roc = talib.ROC(close, timeperiod=window)
+    signal = pd.Series(0, index=close.index)
     current_position = 0  # 0-空仓 1-多仓 -1-空仓
 
-    for i in range(len(price)):
+    for i in range(len(close)):
         if pd.notna(roc.iloc[i]):
             if current_position == 0:
                 # 无持仓时检测开仓信号
@@ -341,35 +348,58 @@ def roc_r(price, window):
 
     return signal
 
+def mom_r(price,period,threshold):
+    """
+    反转型动量信号：过去 period 天涨幅超过 threshold% 做空，
+    跌幅超过 threshold% 做多，其它情况保持空仓（0）。
+
+    :param price: pandas Series，通常是收盘价序列
+    :param period: 回看窗口（天数）
+    :param threshold: 百分比阈值（如 5 表示 5%）
+    :return: pandas Series，信号（1: 开多, -1: 开空, 0: 无操作）
+    """
+    # 计算 period 天前的价格
+    close = price["close"]
+    prev = close.shift(period)
+    # 计算百分比变化
+    pct_chg = (close / prev - 1) * 100
+
+    # 根据阈值生成信号
+    signal = pd.Series(0, index=close.index)
+    signal[pct_chg >  threshold] = -1  # 反转做空
+    signal[pct_chg < -threshold] =  1  # 反转做多
+
+    return signal
 #反转型 RSI 信号：过去 x 天 RSI 值突破上限则发出做空信号，过去 x 天 RSI 值突破下限则发出做多信号，RSI 值重新回到中轨，则平仓。
-def rsi_r(price, window=14, upper=70, lower=30, middle=50):
+def rsi_r(price, window=14, lower=30, middle=50):
     """
     RSI逆向策略信号生成
     :param price: 价格序列
     :param window: RSI计算周期(默认14)
-    :param upper: 超买阈值(默认70)
     :param lower: 超卖阈值(默认30)
     :param middle: 平仓阈值(默认50)
     :return: 交易信号（1: 做多, -1: 做空, 0: 无操作）
     """
+    upper = 100-lower
+    close = price["close"]
     # 计算RSI指标
-    rsi = talib.RSI(price, timeperiod=window)
+    rsi = talib.RSI(close, timeperiod=window)
 
     # 初始化信号序列
-    signal = pd.Series(0, index=price.index)
+    signal = pd.Series(0, index=close.index)
     position = 0  # 持仓状态 0:无仓 1:多仓 -1:空仓
 
-    for i in range(window, len(price)):
-        if pd.isna(rsi[i]):
+    for i in range(window, len(close)):
+        if pd.isna(rsi.iloc[i]):
             continue
         if position == 1:
-            if rsi[i] >= middle:
+            if rsi.iloc[i] >= middle:
                 signal.iloc[i] = 0
                 position = 0
             else:
                 signal.iloc[i] = position
         elif position == -1:
-            if rsi[i] <= middle:
+            if rsi.iloc[i] <= middle:
                 signal.iloc[i] = 0
                 position = 0
             else:
@@ -377,55 +407,55 @@ def rsi_r(price, window=14, upper=70, lower=30, middle=50):
 
         # 开仓逻辑
         if position == 0:
-            if rsi[i] > upper:
+            if rsi.iloc[i] > upper:
                 signal.iloc[i] = -1
                 position = -1
-            elif rsi[i] < lower:
+            elif rsi.iloc[i] < lower:
                 signal.iloc[i] = 1
                 position = 1
-
 
     return signal
 
 #反转型 CMO 信号：过去 x 天 CMO 值突破上限则发出做空信号，过去 x 天 CMO 值突破下限则发出做多信号，CMO 值重回中轨则平仓。
-def cmo_r(price, window=14, upper=50, lower=-50, middle=0):
+def cmo_r(price, window=14, upper=50, middle=0):
     """
     CMO逆向策略信号生成
     :param price: 价格序列
     :param window: CMO计算周期(默认14)
     :param upper: 超买阈值(默认50)
-    :param lower: 超卖阈值(默认-50)
     :param middle: 平仓阈值(默认0)
     :return: 交易信号（1: 做多, -1: 做空, 0: 无操作）
     """
     # 计算CMO指标
-    cmo = talib.CMO(price, timeperiod=window)
+    lower = -upper
+    close = price["close"]
+    cmo = talib.CMO(close, timeperiod=window)
 
     # 初始化信号序列
-    signal = pd.Series(0, index=price.index)
+    signal = pd.Series(0, index=close.index)
     position = 0  # 持仓状态 0:无仓 1:多仓 -1:空仓
 
-    for i in range(window, len(price)):
-        if pd.isna(cmo[i]):
+    for i in range(window, len(close)):
+        if pd.isna(cmo.iloc[i]):
             continue
         if position == 1:
-            if cmo[i] >= middle:
+            if cmo.iloc[i] >= middle:
                 signal.iloc[i] = 0
                 position = 0
             else:
                 signal.iloc[i] = position
         elif position == -1:
-            if cmo[i] <= middle:
+            if cmo.iloc[i] <= middle:
                 signal.iloc[i] = 0
                 position = 0
             else:
                 signal.iloc[i] = position
         # 开仓逻辑
         if position == 0:
-            if cmo[i] > upper:
+            if cmo.iloc[i] > upper:
                 signal.iloc[i] = -1
                 position = -1
-            elif cmo[i] < lower:
+            elif cmo.iloc[i] < lower:
                 signal.iloc[i] = 1
                 position = 1
 
@@ -440,18 +470,19 @@ def continuous_r(price, window):
     :return: pandas Series, 信号值（1: 做多, -1: 做空, 0: 平仓）
     """
     # 计算每天的涨跌方向 (1 表示上涨, -1 表示下跌)
-    daily_change = price.diff().apply(lambda x: 1 if x > 0 else (-1 if x < 0 else 0))
+    close = price["close"]
+    daily_change = close.diff().apply(lambda x: 1 if x > 0 else (-1 if x < 0 else 0))
 
     # 计算过去 x 天内的上涨天数和下跌天数
     up_days = daily_change.rolling(window).apply(lambda x: sum(x > 0), raw=True)
     down_days = daily_change.rolling(window).apply(lambda x: sum(x < 0), raw=True)
 
     # 初始化信号
-    signal = pd.Series(0, index=price.index)
+    signal = pd.Series(0, index=close.index)
 
     # 信号生成
     current_position = 0
-    for i in range(window, len(price)):
+    for i in range(window, len(close)):
         # 提取第 i 天的 up_days 和 down_days 值
         up_days_i = up_days.iloc[i]
         down_days_i = down_days.iloc[i]
@@ -493,14 +524,15 @@ def quantile_signal(price, window):
     :param window: int, 滑动窗口大小，用于计算历史高点和低点的百分位
     :return: pandas Series, 信号值（1: 做多, -1: 做空, 0: 无信号）
     """
-    rolling_max = price.rolling(window).max()
-    rolling_min = price.rolling(window).min()
-    quantile = (price - rolling_min) / (rolling_max - rolling_min + 1e-8)  # 防零除
+    close = price["close"]
+    rolling_max = close.rolling(window).max()
+    rolling_min = close.rolling(window).min()
+    quantile = (close - rolling_min) / (rolling_max - rolling_min + 1e-8)  # 防零除
 
-    signal = pd.Series(0, index=price.index)
+    signal = pd.Series(0, index=close.index)
     current_position = 0  # 0-空仓 1-多仓 -1-空仓
 
-    for i in range(len(price)):
+    for i in range(len(close)):
         if pd.notna(quantile.iloc[i]):
             if current_position == 0:
                 # 空仓状态下检测开仓信号
