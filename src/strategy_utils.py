@@ -1,6 +1,5 @@
 import numpy as np
 from data_utils import *
-from signal_utils import *
 from config import *
 from datetime import datetime
 from typing import Dict
@@ -101,9 +100,9 @@ def calculate_technical_signal(
         df_out.set_index("date", inplace=True)
         return df_out
     df = generate_ohlc(index_nv_df, pair).copy()
-    price = df[cal_col]
+    price = df
     # 1) 从配置里取当前 pair 应跑的因子；若不存在，则用 ALL_FACTORS
-    factors = PAIR_FACTORS.get(pair, ALL_FACTORS)
+    factors = PAIR_FACTORS.get(pair)
     # 2）按配置循环调用，每次生成一列“{因子名}_signal”
     signal_cols = []
     for name,(func,params) in factors.items():
