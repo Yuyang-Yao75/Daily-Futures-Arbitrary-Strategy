@@ -290,7 +290,7 @@ def macd_signal(price, short_window=12, long_window=26, signalperiod=9):
     valid = dif.notna() & dea.notna() & macd.notna()
 
     for i in range(len(close)):
-        if valid[i]:
+        if valid.iloc[i]:
             dif_val = dif.iloc[i]
             dea_val = dea.iloc[i]
             macd_val = macd.iloc[i]
