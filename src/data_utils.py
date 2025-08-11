@@ -235,36 +235,73 @@ def calculate_nv_data(df_underlying: pd.DataFrame,
     return df_nv
 
 # 生成高开低收格式数据
-def generate_ohlc(df_nv:pd.DataFrame,prefix:str)->pd.DataFrame:#todo
+def generate_ohlc(df_nv:pd.DataFrame,
+                prefix:str,
+                open_offset: float = -0.01,
+                high_offset: float = +0.01,
+                low_offset: float  = -0.02,)->pd.DataFrame:
     """
-    从净值数据中提取以指定前缀开头的列，并生成 OHLC 表格。
+    从净值数据中提取以 {prefix}_ 前缀命名的列，生成 OHLC 表格。
+    规则：
+    - 必须存在 {prefix}_close
+    - 若 {prefix}_open / _high / _low 不存在，则按给定 offset 由 close 推出
 
-    参数：
-    df_nv (pd.DataFrame)：以时间索引的净值表，包含如 'IFIH_index_nv'、'IFIH_futures_nv' 等
-    prefix (str)        ：要模糊搜索的列前缀，例如 'IFIH'
+    参数
+    ----
+    df_nv : pd.DataFrame
+        以时间为索引或包含 'date' 列的净值表。
+    prefix : str
+        符号前缀，例如 'IFIH'。
+    open_offset, high_offset, low_offset : float
+        当缺失对应列时，用 close 加（或减）该偏移量生成。
 
-    返回：
-    pd.DataFrame：包含 ['date','close','open','high','low'] 的新表格
+    返回
+    ----
+    pd.DataFrame
+        以日期为索引，包含 ['close','open','high','low'] 的表格。
     """
-    # 在列名中进行模糊搜索
-    matched_cols = [col for col in df_nv.columns if col.startswith(prefix)]
-    if not matched_cols:
-        raise ValueError(f"没有找到以 '{prefix}' 开头的列")
-    # 如果有多个匹配，默认使用第一个
-    target_col = matched_cols[0]
-    # 生成 OHLC 表格
-    df = df_nv[[target_col]].copy().reset_index()
-    df.rename(columns={target_col: 'close'}, inplace=True)
-    df['open']=df['close']-0.01
-    df['high']=df['close']+0.01
-    df['low']=df['close']-0.02
-    df['date']=pd.to_datetime(df['date'])
-    df.set_index('date',inplace=True)
-    return df
+    close_col = f"{prefix}_close"
+    if close_col not in df_nv.columns:
+        raise ValueError(f"缺少必要列：{close_col}")
+
+    # 索引处理：优先 DatetimeIndex，其次 'date' 列
+    if isinstance(df_nv.index, pd.DatetimeIndex):
+        date_index = df_nv.index
+    elif "date" in df_nv.columns:
+        date_index = pd.to_datetime(df_nv["date"])
+        if date_index.isna().any():
+            raise ValueError("date 列存在非法日期，无法转换为 DatetimeIndex")
+    else:
+        raise ValueError("无法获取日期索引：需要 DatetimeIndex 或 'date' 列")
+
+    out = pd.DataFrame(index=date_index.copy())
+    out.index.name = "date"
+
+    out["close"] = df_nv[close_col].to_numpy()
+
+    open_col = f"{prefix}_open"
+    high_col = f"{prefix}_high"
+    low_col = f"{prefix}_low"
+
+    out["open"] = (df_nv[open_col].to_numpy()
+                if open_col in df_nv.columns
+                else out["close"] + open_offset)
+    out["high"] = (df_nv[high_col].to_numpy()
+                if high_col in df_nv.columns
+                else out["close"] + high_offset)
+    out["low"] = (df_nv[low_col].to_numpy()
+                if low_col in df_nv.columns
+                else out["close"] + low_offset)
+
+    # 可选兜底，确保 OHLC 合理关系
+    out["high"] = out[["high", "open", "close"]].max(axis=1)
+    out["low"] = out[["low", "open", "close"]].min(axis=1)
+
+    return out.sort_index()
 
 #======================提取回测数据=========================
 def get_concat_nv_data(available_pairs:str = AVAILABLE_PAIRS,
-                       result_path:str = RESULT_PATH):
+                    result_path:str = RESULT_PATH):
     """
     读取所有品种的 '{pair}_concat_portfolio.csv'，提取 market_value 计算净值，
     并合并到一个 DataFrame 中。
