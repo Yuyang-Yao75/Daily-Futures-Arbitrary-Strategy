@@ -264,6 +264,10 @@ def generate_ohlc(df_nv:pd.DataFrame,
     if close_col not in df_nv.columns:
         raise ValueError(f"缺少必要列：{close_col}")
 
+    vol_col = f"{prefix}_volume"
+    if vol_col not in df_nv.columns:
+        raise ValueError(f"缺少必要列：{vol_col}")
+
     # 索引处理：优先 DatetimeIndex，其次 'date' 列
     if isinstance(df_nv.index, pd.DatetimeIndex):
         date_index = df_nv.index
@@ -292,10 +296,11 @@ def generate_ohlc(df_nv:pd.DataFrame,
     out["low"] = (df_nv[low_col].to_numpy()
                 if low_col in df_nv.columns
                 else out["close"] + low_offset)
+    out["volume"]=df_nv[vol_col].to_numpy()
 
     # 可选兜底，确保 OHLC 合理关系
-    out["high"] = out[["high", "open", "close"]].max(axis=1)
-    out["low"] = out[["low", "open", "close"]].min(axis=1)
+    # out["high"] = out[["high", "open", "close"]].max(axis=1)
+    # out["low"] = out[["low", "open", "close"]].min(axis=1)
 
     return out.sort_index()
 
