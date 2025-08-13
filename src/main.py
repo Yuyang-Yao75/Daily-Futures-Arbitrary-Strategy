@@ -4,52 +4,53 @@ from backtest_utils import *
 from picture_utils import *
 from config import INITIAL_CASH, BARS_PER_YEAR, INDEX_START_DATE, START_DATE, END_DATE, RESULT_PATH, AVAILABLE_STRATEGY, AVAILABLE_PAIRS
 
-def run_cross_section_strategy():
-    futures_data = pd.read_csv(FUTURES_DATA)
-    futures_data['date'] = pd.to_datetime(futures_data['date'])
-    futures_data.set_index('date', inplace=True)
-
-    symbols = ["IC", "IH", "IM", "IF"]
-    for symbol in symbols:
-        pct_chg_col = f"{symbol}_PCT_CHG"
-        vol_col = f"{symbol}_vol"
-        futures_data[vol_col] = futures_data[pct_chg_col].rolling(window=60).std()
-
-    futures_data = futures_data.dropna()
-
-    inv = {sym: 1 / futures_data[f'{sym}_vol'] for sym in symbols}
-    inv_df = pd.DataFrame(inv)
-
-    norm_inv = inv_df.div(inv_df.sum(axis=1), axis=0)
-
-    for symbol in symbols:
-        yr_basis_col = f'{symbol}_ANAL_BASISANNUALYIELD'
-        futures_data[f'{symbol}_adjusted_yrbasis'] = norm_inv[symbol] * futures_data[yr_basis_col]
-
-    yrb_cols = [f'{sym}_ANAL_BASISANNUALYIELD' for sym in symbols]
-    open_cols = [f'{sym}_OPEN' for sym in symbols]
-    adj_cols = [f'{sym}_adjusted_yrbasis' for sym in symbols]
-
-    futures_data.reset_index(inplace=True)
-    # 为每个 symbol 生成一张小表，然后 concat
-    frames = []
-    for sym in symbols:
-        tmp = futures_data[['date',
-                            f'{sym}_OPEN',
-                            f'{sym}_ANAL_BASISANNUALYIELD',
-                            f'{sym}_adjusted_yrbasis']].copy()
-        tmp['symbol'] = sym
-        tmp = tmp.rename(columns={
-            f'{sym}_OPEN': 'open',
-            f'{sym}_ANAL_BASISANNUALYIELD': 'yrbasis',
-            f'{sym}_adjusted_yrbasis': 'adjusted_yrbasis'
-        })
-        frames.append(tmp)
-
-    df_final = pd.concat(frames, ignore_index=True)
-
-    # 重排一下列顺序
-    df_final = df_final[['date', 'symbol', 'open', 'yrbasis', 'adjusted_yrbasis']]
+# 横截面策略代码——未完成
+# def run_cross_section_strategy():
+#     futures_data = pd.read_csv(FUTURES_DATA)
+#     futures_data['date'] = pd.to_datetime(futures_data['date'])
+#     futures_data.set_index('date', inplace=True)
+#
+#     symbols = ["IC", "IH", "IM", "IF"]
+#     for symbol in symbols:
+#         pct_chg_col = f"{symbol}_PCT_CHG"
+#         vol_col = f"{symbol}_vol"
+#         futures_data[vol_col] = futures_data[pct_chg_col].rolling(window=60).std()
+#
+#     futures_data = futures_data.dropna()
+#
+#     inv = {sym: 1 / futures_data[f'{sym}_vol'] for sym in symbols}
+#     inv_df = pd.DataFrame(inv)
+#
+#     norm_inv = inv_df.div(inv_df.sum(axis=1), axis=0)
+#
+#     for symbol in symbols:
+#         yr_basis_col = f'{symbol}_ANAL_BASISANNUALYIELD'
+#         futures_data[f'{symbol}_adjusted_yrbasis'] = norm_inv[symbol] * futures_data[yr_basis_col]
+#
+#     yrb_cols = [f'{sym}_ANAL_BASISANNUALYIELD' for sym in symbols]
+#     open_cols = [f'{sym}_OPEN' for sym in symbols]
+#     adj_cols = [f'{sym}_adjusted_yrbasis' for sym in symbols]
+#
+#     futures_data.reset_index(inplace=True)
+#     # 为每个 symbol 生成一张小表，然后 concat
+#     frames = []
+#     for sym in symbols:
+#         tmp = futures_data[['date',
+#                             f'{sym}_OPEN',
+#                             f'{sym}_ANAL_BASISANNUALYIELD',
+#                             f'{sym}_adjusted_yrbasis']].copy()
+#         tmp['symbol'] = sym
+#         tmp = tmp.rename(columns={
+#             f'{sym}_OPEN': 'open',
+#             f'{sym}_ANAL_BASISANNUALYIELD': 'yrbasis',
+#             f'{sym}_adjusted_yrbasis': 'adjusted_yrbasis'
+#         })
+#         frames.append(tmp)
+#
+#     df_final = pd.concat(frames, ignore_index=True)
+#
+#     # 重排一下列顺序
+#     df_final = df_final[['date', 'symbol', 'open', 'yrbasis', 'adjusted_yrbasis']]
 
 def run_strategy(symbol="IMIH",strategy_name="basis"):
     """
