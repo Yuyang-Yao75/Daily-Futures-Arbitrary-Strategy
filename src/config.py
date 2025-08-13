@@ -66,6 +66,7 @@ FUNC_MAP = {
     'cci':cci,
     'kdj':kdj,
     'ultosc_contrarian':ultosc_contrarian,
+    'williams_r_contrarian':williams_r_contrarian
 }
 
 PARAMS_MAP = {
@@ -111,6 +112,7 @@ PARAMS_MAP = {
     'cci':{"window":[3,5,10,20,30,40,50,60,120,140,160,200],"threshold":[80,100,120,140,160,180,200]},
     'kdj': {"fastk_period": [5, 9, 14, 20, 30],"fastd_period": [3, 5, 7, 10],"threshold": [1,3,5,7,9,11,13,15,17,19,21,23],"shift_for_exec":[0,1]},
     'ultosc_contrarian':{"t1":[7,8,9,10,12,13],"t2":[14,16,18,20,26],"t3":[16,18,20,24,26,28],"threshold":[5,10,15,20,25,30],"shift_for_exec":[0,1]},
+    'williams_r_contrarian':{"window":[3,5,10,20,30,40,50,60,120,140,160,200],"threshold":[1,3,5,7,9,11,13,15,17,19,21,23],"shift_for_exec":[0,1]},
 }
 
 PAIR_FACTORS = {}

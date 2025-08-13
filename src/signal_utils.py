@@ -1092,6 +1092,71 @@ def ultosc_contrarian(price: pd.DataFrame,
         signal.iloc[i] = position
 
     return signal
+
+#威廉指数
+def williams_r_contrarian(price: pd.DataFrame,
+                          timeperiod: int = 14,
+                          threshold: float = 20.0,
+                          shift_for_exec: int = 0) -> pd.Series:
+    """
+    威廉指标 Williams %R 反转信号（返回持仓信号）
+    - WILLR > 100 - threshold → 看空 (-1)
+    - WILLR < threshold       → 看多 (+1)
+    - 其余保持上一持仓；窗口未满为 0
+
+    参数
+    ----
+    price : 必含列 ["high","low","close"]
+    timeperiod : int，威廉指标周期
+    threshold : float，阈值（常用 20 → 对应超买 -20 / 超卖 -80）
+    shift_for_exec : 执行对齐（0=当日收盘执行，1=次日开盘执行，防前视）
+
+    返回
+    ----
+    pd.Series: 持仓信号（+1/-1/0）
+    """
+    required = {"high", "low", "close"}
+    if not required.issubset(price.columns):
+        raise ValueError(f"price 必须包含列：{required}")
+
+    if not price.index.is_monotonic_increasing:
+        price = price.sort_index()
+
+    high = price["high"].astype(float)
+    low = price["low"].astype(float)
+    close = price["close"].astype(float)
+
+    # 计算 Williams %R（范围 -100 ~ 0）
+    willr = talib.WILLR(high, low, close, timeperiod=timeperiod)
+
+    # 如果次日执行，右移一根，避免用到未来数据
+    if shift_for_exec:
+        willr = willr.shift(shift_for_exec)
+
+    # 将 %R 转为 0 ~ 100 区间（方便和 threshold 规则统一）
+    willr_pos = 100 + willr
+
+    upper = 100.0 - threshold
+    lower = threshold
+
+    signal = pd.Series(0, index=price.index, dtype=int)
+    position = 0
+
+    for i in range(len(close)):
+        val = willr_pos.iloc[i]
+        if pd.isna(val):
+            signal.iloc[i] = position
+            continue
+
+        if val > upper:       # 超买区 → 反转做空
+            position = -1
+        elif val < lower:     # 超卖区 → 反转做多
+            position = 1
+        # 其他保持原仓位
+
+        signal.iloc[i] = position
+
+    return signal
 #==========月度数据处理===========
 # 聚合为月度数据 - 为每个月计算价格涨跌情况
 
