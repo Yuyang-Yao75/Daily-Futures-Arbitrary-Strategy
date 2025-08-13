@@ -950,6 +950,84 @@ def cci(price:pd.DataFrame,
         signal.iloc[i] = position
 
     return signal
+
+#随机指标：当 KDJ 大于100-threshold，发出看空信号；当 KDJ 小于 threshold，发出看多信号
+def kdj(price: pd.DataFrame,
+        fastk_period: int = 9,
+        fastd_period: int = 3,
+        threshold: float = 20.0,
+        line: str = "k",          # "k" | "d" | "j" | "mean"（K/D均值）
+        shift_for_exec: int = 0   # 0=当日收盘执行；1=次日开盘执行（防前视）
+       ) -> pd.Series:
+    """
+    随机指标(KDJ)反转信号（返回持仓信号）
+    - 指标值 > 100 - threshold → 看空(-1)
+    - 指标值 < threshold       → 看多(+1)
+    - 其他保持上一次仓位；窗口未满为 0
+
+    参数
+    ----
+    price : 必含列 ["high","low","close"]
+    fastk_period : %K 的周期
+    fastd_period : %D 的平滑周期
+    threshold : 阈值（常用 20；超买/超卖区为 100-20=80 与 20）
+    line : 用哪条线判定：K / D / J(=3K-2D) / mean(K,D)
+    shift_for_exec : 若=1，则把用于判定的序列右移1根，适配次日开盘执行
+    """
+    required = {"high", "low", "close"}
+    if not required.issubset(price.columns):
+        raise ValueError(f"price 必须包含列：{required}")
+
+    if not price.index.is_monotonic_increasing:
+        price = price.sort_index()
+
+    high = price["high"].astype(float)
+    low = price["low"].astype(float)
+    close = price["close"].astype(float)
+
+    # talib STOCHF 返回 fastk(%K) 与 fastd(%D)，范围通常 0~100
+    k, d = talib.STOCHF(high, low, close,
+                        fastk_period=fastk_period,
+                        fastd_period=fastd_period,
+                        fastd_matype=0)
+
+    line = line.lower()
+    if line == "k":
+        ind = k
+    elif line == "d":
+        ind = d
+    elif line == "j":
+        ind = 3 * k - 2 * d
+    elif line == "mean":
+        ind = (k + d) / 2.0
+    else:
+        raise ValueError("line 必须是 'k' | 'd' | 'j' | 'mean' 之一")
+
+    # 执行对齐：次日开盘执行时右移，避免用到将要交易这根的当日信息
+    if shift_for_exec:
+        ind = ind.shift(shift_for_exec)
+
+    upper = 100.0 - threshold
+    lower = threshold
+
+    signal = pd.Series(0, index=close.index, dtype=int)
+    position = 0  # 0=空仓, 1=多, -1=空
+
+    for i in range(len(close)):
+        val = ind.iloc[i]
+        if pd.isna(val):
+            signal.iloc[i] = position
+            continue
+
+        if val > upper:       # 超买区 → 反转看空
+            position = -1
+        elif val < lower:     # 超卖区 → 反转看多
+            position = 1
+        # else: 保持原持仓
+
+        signal.iloc[i] = position
+
+    return signal
 #==========月度数据处理===========
 # 聚合为月度数据 - 为每个月计算价格涨跌情况
 

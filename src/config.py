@@ -63,7 +63,8 @@ FUNC_MAP = {
     'sar':sar,
     'intramom':intramom,
     'stds':stds,
-    'cci':cci
+    'cci':cci,
+    'kdj':kdj,
 }
 
 PARAMS_MAP = {
@@ -106,7 +107,8 @@ PARAMS_MAP = {
     'sar':{"acceleration":[0.01,0.02,0.04,0.06,0.08,0.1,0.2,0.3,0.4,0.5]},
     'intramom':{"threshold":[0.97,0.98,0.99,1,1.01,1.02,1.03]},
     'stds':{"short_window":[3,5,10,20,30,40,50,60,120,140,160,200],"long_window":[5,10,20,30,40,50,60,80,100,120,140,160,200],"method":["signed_range","stoch_pos","combo"],"norm_window":[5,10,20,30,40,50,60]},
-    'cci':{"window":[3,5,10,20,30,40,50,60,120,140,160,200],"threshold":[80,100,120,140,160,180,200]}
+    'cci':{"window":[3,5,10,20,30,40,50,60,120,140,160,200],"threshold":[80,100,120,140,160,180,200]},
+    'kdj': {"fastk_period": [5, 9, 14, 20, 30],"fastd_period": [3, 5, 7, 10],"threshold": [1,3,5,7,9,11,13,15,17,19,21,23]},
 }
 
 PAIR_FACTORS = {}
