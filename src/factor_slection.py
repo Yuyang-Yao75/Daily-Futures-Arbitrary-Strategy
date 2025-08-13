@@ -15,12 +15,14 @@ from pybroker import Strategy, StrategyConfig
 from backtest_utils import CSVDataSource, position_signal_trade
 from config import (
     BARS_PER_YEAR,
-    END_DATE,
+    # INDEX_START_DATE,
+    # END_DATE,
     INITIAL_CASH,
     START_DATE,
     FACTOR_SELECTION_PATH,
     FUNC_MAP,
-    PARAMS_MAP
+    PARAMS_MAP,
+    AVAILABLE_PAIRS
 )
 from data_utils import generate_ohlc, get_nv_data  # type: ignore
 
@@ -51,15 +53,15 @@ def _run_backtest(signal_df: pd.DataFrame, symbol: str, tag: str) -> pd.DataFram
     )
     strategy = Strategy(
         data_source,
-        start_date=START_DATE.strftime("%m/%d/%Y"),
-        end_date=END_DATE.strftime("%m/%d/%Y"),
+        start_date="2015/10/17",
+        end_date=START_DATE.strftime("%m/%d/%Y"),
         config=config,
     )
     strategy.add_execution(position_signal_trade, symbol)
     result = strategy.backtest()
 
-    result.trades.to_csv(os.path.join(FACTOR_SELECTION_PATH, f"{symbol}_{tag}_trades.csv"))
-    result.metrics_df.to_csv(os.path.join(FACTOR_SELECTION_PATH, f"{symbol}_{tag}_metrics.csv"))
+    # result.trades.to_csv(os.path.join(FACTOR_SELECTION_PATH, f"{symbol}_{tag}_trades.csv"))
+    # result.metrics_df.to_csv(os.path.join(FACTOR_SELECTION_PATH, f"{symbol}_{tag}_metrics.csv"))
     return result.metrics_df
 
 
@@ -213,5 +215,9 @@ if __name__ == "__main__":  # pragma: no cover - usage example
     index_nv = get_nv_data(index_df, "index")
 
     from signal_utils import *
-
-    select_factors(index_nv, "IFIH", FUNC_MAP, PARAMS_MAP)
+    for symbol in AVAILABLE_PAIRS:
+        if symbol == "IMIC":
+            continue
+        print(f"\n{'=' * 50}")
+        print(f"开始因子选择: {symbol}")
+        select_factors(index_nv, symbol, FUNC_MAP, PARAMS_MAP)
