@@ -1028,6 +1028,70 @@ def kdj(price: pd.DataFrame,
         signal.iloc[i] = position
 
     return signal
+
+#终极震荡指标
+def ultosc_contrarian(price: pd.DataFrame,
+                      t1: int = 7,
+                      t2: int = 14,
+                      t3: int = 28,
+                      threshold: float = 30.0,
+                      shift_for_exec: int = 0) -> pd.Series:
+    """
+    终极震荡指标 ULTOSC 反转信号（返回持仓信号）
+    - ULTOSC > 100 - threshold → 看空 (-1)
+    - ULTOSC < threshold       → 看多 (+1)
+    - 其余保持上一持仓；窗口未满为 0
+
+    参数
+    ----
+    price : 必含列 ["high","low","close"]
+    t1,t2,t3 : ULTOSC 的三个周期（常用 7,14,28）
+    threshold : 阈值（常用 30 → 超买70/超卖30）
+    shift_for_exec : 执行对齐（0=当日收盘执行；1=次日开盘执行，防前视）
+
+    返回
+    ----
+    pd.Series: 持仓信号（+1/-1/0）
+    """
+    required = {"high","low","close"}
+    if not required.issubset(price.columns):
+        raise ValueError(f"price 必须包含列：{required}")
+
+    if not price.index.is_monotonic_increasing:
+        price = price.sort_index()
+
+    high  = price["high"].astype(float)
+    low   = price["low"].astype(float)
+    close = price["close"].astype(float)
+
+    # 计算 ULTOSC（范围通常 0~100）
+    ult = talib.ULTOSC(high, low, close, timeperiod1=t1, timeperiod2=t2, timeperiod3=t3)
+
+    # 次日开盘执行时，右移一根以避免用到将要交易这根的数据
+    if shift_for_exec:
+        ult = ult.shift(shift_for_exec)
+
+    upper = 100.0 - threshold
+    lower = threshold
+
+    signal = pd.Series(0, index=price.index, dtype=int)
+    position = 0  # 0=空仓, 1=多, -1=空
+
+    for i in range(len(close)):
+        val = ult.iloc[i]
+        if pd.isna(val):
+            signal.iloc[i] = position
+            continue
+
+        if val > upper:       # 超买 → 反转看空
+            position = -1
+        elif val < lower:     # 超卖 → 反转看多
+            position = 1
+        # 否则保持原持仓
+
+        signal.iloc[i] = position
+
+    return signal
 #==========月度数据处理===========
 # 聚合为月度数据 - 为每个月计算价格涨跌情况
 

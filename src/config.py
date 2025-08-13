@@ -65,6 +65,7 @@ FUNC_MAP = {
     'stds':stds,
     'cci':cci,
     'kdj':kdj,
+    'ultosc_contrarian':ultosc_contrarian,
 }
 
 PARAMS_MAP = {
@@ -108,7 +109,8 @@ PARAMS_MAP = {
     'intramom':{"threshold":[0.97,0.98,0.99,1,1.01,1.02,1.03]},
     'stds':{"short_window":[3,5,10,20,30,40,50,60,120,140,160,200],"long_window":[5,10,20,30,40,50,60,80,100,120,140,160,200],"method":["signed_range","stoch_pos","combo"],"norm_window":[5,10,20,30,40,50,60]},
     'cci':{"window":[3,5,10,20,30,40,50,60,120,140,160,200],"threshold":[80,100,120,140,160,180,200]},
-    'kdj': {"fastk_period": [5, 9, 14, 20, 30],"fastd_period": [3, 5, 7, 10],"threshold": [1,3,5,7,9,11,13,15,17,19,21,23]},
+    'kdj': {"fastk_period": [5, 9, 14, 20, 30],"fastd_period": [3, 5, 7, 10],"threshold": [1,3,5,7,9,11,13,15,17,19,21,23],"shift_for_exec":[0,1]},
+    'ultosc_contrarian':{"t1":[7,8,9,10,12,13],"t2":[14,16,18,20,26],"t3":[16,18,20,24,26,28],"threshold":[5,10,15,20,25,30],"shift_for_exec":[0,1]},
 }
 
 PAIR_FACTORS = {}
