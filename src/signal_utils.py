@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import talib
 
 #通道型布林带信号：最新价突破布林带上界发出做空信号，突破下界发出做多信号，最新价由上到下突破中轨，则平空；最新价由下到上突破中轨，则平多
@@ -218,14 +219,18 @@ def calculate_ma_talib(close, window, ma_type):
 def generate_ma_signal(price, short_window, long_window, ma_type, fastlimit=0.1, slowlimit=0.6, vfactor=1):
     """
     改进版均线交叉信号生成
-    :param price: pandas Series, 价格序列
+    :param price: pandas DataFrame, 价格序列
     :param short_window: int, 短期参数(对于Hilbert变换表示偏移周期)
     :param long_window: int, 长期参数(仅传统均线使用)
     :param ma_type: str, 均线类型 ("DoubleMA", "WMA", "EXPWMA", "Hilbert_Transform",
                 "Kaufman", "MESA_Adaptive", "MidPoint", "TRIX")
     """
     # Hilbert变换特殊处理
-    close = price["close"]
+    if short_window > long_window:
+        return pd.Series(0, index=price.index)
+    high = price["high"].astype(float)
+    low = price["low"].astype(float)
+    close = price["close"].astype(float)
     if ma_type == "Hilbert_Transform":
         short_ma = talib.HT_TRENDLINE(close)
         long_ma = short_ma.shift(short_window)  # 使用short_window作为偏移量
@@ -234,6 +239,9 @@ def generate_ma_signal(price, short_window, long_window, ma_type, fastlimit=0.1,
     elif ma_type == "TRIX":
         short_ma = talib.T3(close, short_window, vfactor)
         long_ma = talib.T3(close, long_window, vfactor)
+    elif ma_type == "MIDPRICE":
+        short_ma = talib.MIDPRICE(high, low, short_window)
+        long_ma = talib.MIDPRICE(high, low, long_window)
     else:
         short_ma = calculate_ma_talib(close, short_window, ma_type)
         long_ma = calculate_ma_talib(close, long_window, ma_type)
@@ -279,6 +287,8 @@ def macd_signal(price, short_window=12, long_window=26, signalperiod=9):
     :return: 交易信号（1: 做多, -1: 做空, 0: 无操作）
     """
     # 计算MACD指标
+    if short_window > long_window:
+        return pd.Series(0, index=price.index)
     close = price["close"]
     dif, dea, macd = talib.MACD(close,
                                 fastperiod=short_window,
@@ -525,8 +535,8 @@ def quantile_signal(price, window):
     :return: pandas Series, 信号值（1: 做多, -1: 做空, 0: 无信号）
     """
     close = price["close"]
-    rolling_max = close.rolling(window).max()
-    rolling_min = close.rolling(window).min()
+    rolling_max = close.rolling(window).max().shift(1)
+    rolling_min = close.rolling(window).min().shift(1)
     quantile = (close - rolling_min) / (rolling_max - rolling_min + 1e-8)  # 防零除
 
     signal = pd.Series(0, index=close.index)
@@ -551,7 +561,388 @@ def quantile_signal(price, window):
 
     return signal
 
+#==========补充信号==========
+#布林带+ATR 震荡（有中轴板）
+def bollinger_atr_mom(price:pd.DataFrame,
+                    window:int = 20,
+                    atr_mult_upper:int = 2,
+                    atr_mult_lower:int = 2
+):
+    """
+    基于“布林带(中轨=SMA)+ATR带宽”的动量持仓信号：
+    - 收盘价 > 上轨：开多（持仓= +1）
+    - 收盘价 < 下轨：开空（持仓= -1）
+    - 由上到下 跌破 中轨：平多（持仓 -> 0）
+    - 由下到上 突破 中轨：平空（持仓 -> 0）
 
+    参数
+    ----
+    price : 必含列 ["high","low","close"]
+    window : 中轨 SMA 的窗口
+    atr_window : ATR 的窗口，默认与 window 相同
+    atr_mult_upper / atr_mult_lower : 上/下轨的 ATR 倍数
+
+    返回
+    ----
+    pd.Series: 位置序列（1=多，-1=空，0=空仓）
+    """
+    if not {"high","low","close"}.issubset(price.columns):
+        raise ValueError("price 必须包含列：'high','low','close'")
+    high = price["high"].astype(float)
+    low = price["low"].astype(float)
+    close = price["close"].astype(float)
+
+    middleband = talib.SMA(close, timeperiod=window)
+    atr = talib.ATR(high, low, close, timeperiod=window)
+
+    upperband = middleband + atr_mult_upper * atr
+    lowerband = middleband - atr_mult_lower * atr
+
+    signal = pd.Series(0, index=close.index,dtype=int)
+    current_position = 0  # 0-空仓 1-多仓 -1-空仓
+
+    for i in range(len(close)):
+        # 跳过NaN值
+        if pd.isna(upperband.iloc[i]) or pd.isna(middleband.iloc[i]) or pd.isna(lowerband.iloc[i]):
+            continue
+
+        # 平仓逻辑优先
+        if current_position == -1:
+            if close.iloc[i] > middleband.iloc[i] and close.iloc[i - 1] <= middleband.iloc[i - 1]:  # 平空
+                signal.iloc[i] = 0
+                current_position = 0
+            else:
+                signal.iloc[i] = current_position
+        elif current_position == 1:
+            if close.iloc[i] < middleband.iloc[i] and close.iloc[i - 1] >= middleband.iloc[i - 1]:  # 平多
+                signal.iloc[i] = 0
+                current_position = 0
+            else:
+                signal.iloc[i] = current_position
+
+        # 开仓逻辑（仅在无仓位时）
+        if current_position == 0:
+            if close.iloc[i] > upperband.iloc[i]:  # 开多
+                signal.iloc[i] = 1
+                current_position = 1
+            elif close.iloc[i] < lowerband.iloc[i]:  # 开空
+                signal.iloc[i] = -1
+                current_position = -1
+
+    return signal
+
+#海龟交易法则：最新价超过唐安奇通道上轨后发出做多信号 1，低于唐安奇通道下轨发出做空信号-1
+def turtle_trading(price:pd.DataFrame,
+                    window:int = 20):
+    """
+    海龟交易法则（基于唐安奇通道）的动量持仓信号：
+    - 收盘价 > 上轨：开多（持仓= +1）
+    - 收盘价 < 下轨：开空（持仓= -1）
+    - 由上到下跌破中轨：平多（持仓 -> 0）
+    - 由下到上突破中轨：平空（持仓 -> 0）
+
+    参数
+    ----
+    price : 必含列 ["high","low","close"]
+    window : 唐安奇通道的回溯窗口
+
+    返回
+    ----
+    pd.Series: 位置序列（1=多，-1=空，0=空仓）
+    """
+    if not {"high", "low", "close"}.issubset(price.columns):
+        raise ValueError("price 必须包含列：'high','low','close'")
+
+    high = price["high"].astype(float)
+    low = price["low"].astype(float)
+    close = price["close"].astype(float)
+
+    # 唐安奇通道
+    upperband = high.rolling(window=window, min_periods=window).max().shift(1)
+    lowerband = low.rolling(window=window, min_periods=window).min().shift(1)
+    middleband = (upperband + lowerband) / 2
+
+    signal = pd.Series(0, index=close.index, dtype=int)
+    current_position = 0  # 0-空仓 1-多仓 -1-空仓
+
+    for i in range(len(close)):
+        if pd.isna(upperband.iloc[i]) or pd.isna(lowerband.iloc[i]):
+            continue
+
+        # 平仓逻辑优先
+        if current_position == -1:
+            if close.iloc[i] > middleband.iloc[i] and close.iloc[i - 1] <= middleband.iloc[i - 1]:
+                signal.iloc[i] = 0
+                current_position = 0
+            else:
+                signal.iloc[i] = current_position
+        elif current_position == 1:
+            if close.iloc[i] < middleband.iloc[i] and close.iloc[i - 1] >= middleband.iloc[i - 1]:
+                signal.iloc[i] = 0
+                current_position = 0
+            else:
+                signal.iloc[i] = current_position
+
+        # 开仓逻辑
+        if current_position == 0:
+            if close.iloc[i] > upperband.iloc[i]:
+                signal.iloc[i] = 1
+                current_position = 1
+            elif close.iloc[i] < lowerband.iloc[i]:
+                signal.iloc[i] = -1
+                current_position = -1
+
+    return signal
+
+#抛物线策略：最新价上穿抛物线发出做多信号 1，最新价下穿抛物线发出做空信号-1
+def sar(price:pd.DataFrame,
+        acceleration:float = 0.2):
+    """
+    抛物线 SAR 策略信号（事件信号）
+    - 最新收盘价上穿 SAR → 做多信号 +1
+    - 最新收盘价下穿 SAR → 做空信号 -1
+
+    参数
+    ----
+    price : 必含列 ["high","low","close"]
+    acceleration : 加速因子步长（AF step），常见 0.02
+
+    返回
+    ----
+    pd.Series: 事件信号
+    """
+    required = {"high","low","close"}
+    if not required.issubset(price.columns):
+        raise ValueError(f"price 必须包含列：{required}")
+
+    if not price.index.is_monotonic_increasing:
+        price = price.sort_index()
+
+    high  = price["high"].astype(float)
+    low   = price["low"].astype(float)
+    close = price["close"].astype(float)
+
+    sar = talib.SAR(high, low, acceleration=acceleration, maximum=0.2)
+
+    # 生成持仓信号
+    signal = pd.Series(0, index=close.index, dtype=int)
+    position = 0  # 当前持仓状态：0 无仓, 1 多, -1 空
+
+    for i in range(len(close)):
+        if pd.isna(sar.iloc[i]):
+            signal.iloc[i] = position
+            continue
+
+        if close.iloc[i] > sar.iloc[i]:
+            position = 1
+        elif close.iloc[i] < sar.iloc[i]:
+            position = -1
+
+        signal.iloc[i] = position
+
+    return signal
+#日内动量策略：当日内动量大于 threshold 的时候做多，反之做空
+def intramom(price:pd.DataFrame,
+            window:int = 20,
+            threshold:float = 1):
+    """
+    日内动量策略（返回持仓信号）
+    - 指标: IM = ((high + low)/2) / open
+    - 信号: MA(IM, timeperiod) > threshold → 多(+1)，否则空(-1)
+
+    参数
+    ----
+    price : 必含列 ["open","high","low","close"]
+    timeperiod : int, 移动平均窗口
+    threshold : float, 阈值，默认 0.03
+
+    返回
+    ----
+    pd.Series: 持仓信号（+1/-1，窗口未满为0）
+    """
+    required = {"high","low","close","open"}
+    if not required.issubset(price.columns):
+        raise ValueError(f"price 必须包含列：{required}")
+
+    if not price.index.is_monotonic_increasing:
+        price = price.sort_index()
+
+    open_p = price["open"].astype(float)
+    high  = price["high"].astype(float)
+    low   = price["low"].astype(float)
+    close = price["close"].astype(float)
+
+    mom = ((high + low) / 2) / open_p
+    mom_ma = mom.rolling(window=window, min_periods=window).mean()
+
+    # 生成持仓信号
+    signal = pd.Series(0, index=close.index, dtype=int)
+    position = 0  # 当前持仓状态：0 无仓, 1 多, -1 空
+
+    for i in range(len(close)):
+        if pd.isna(mom_ma.iloc[i]):
+            signal.iloc[i] = position
+            continue
+
+        if mom_ma.iloc[i] > threshold:
+            position = 1
+        elif mom_ma.iloc[i] < threshold:
+            position = -1
+
+        signal.iloc[i] = position
+
+    return signal
+
+#日内震幅动量
+def stds(price: pd.DataFrame,
+                    short_window: int = 10,
+                    long_window: int = 30,
+                    method: str = "signed_range",   # "signed_range" | "stoch_pos" | "combo"
+                    norm_window: int = 20           # combo 用于 H 的标准化窗口
+                    ) -> pd.Series:
+    """
+    日内震幅动量（STDS）双均线信号：
+    1) 先由 (H,L,C) 构造 STDS 序列
+    2) 对 STDS 做短/长移动平均
+    3) 短上穿长 → 多(+1)，下穿 → 空(-1)，其他保持最近持仓；窗口未满为 0
+
+    参数
+    ----
+    price : 必含列 ["open","high","low","close"]
+    short_window, long_window : STDS 的短/长均线窗口
+    method : STDS 构造方式
+        - "signed_range": STDS = sign(C) * H
+        - "stoch_pos"   : STDS = 2 * ((logC - logL) / H) - 1
+        - "combo"       : 0.5* standardized(sign(C)*H) + 0.5*stoch_pos
+    norm_window : combo 中 H 的标准化窗口
+
+    返回
+    ----
+    pd.Series: 持仓信号（+1/-1/0）
+    """
+    required = {"open","high","low","close"}
+    if not required.issubset(price.columns):
+        raise ValueError(f"price 必须包含列：{required}")
+
+    if not price.index.is_monotonic_increasing:
+        price = price.sort_index()
+
+    if short_window > long_window:
+        return pd.Series(0, index=price.index)
+
+    o = price["open"].astype(float)
+    h = price["high"].astype(float)
+    l = price["low"].astype(float)
+    c = price["close"].astype(float)
+
+    # 对数价，避免非正值导致的 log 报错
+    eps = 1e-12
+    log_o = np.log(np.clip(o, eps, None))
+    log_h = np.log(np.clip(h, eps, None))
+    log_l = np.log(np.clip(l, eps, None))
+    log_c = np.log(np.clip(c, eps, None))
+
+    H = (log_h - log_l)            # 当日对数振幅
+    L = (log_l - log_o)            # 开盘->最低
+    C = (log_c - log_o)            # 开盘->收盘
+
+    method = method.lower()
+    if method == "signed_range":
+        stds = np.sign(C) * H
+    elif method == "stoch_pos":
+        rng = H.replace(0.0, np.nan)
+        pos = (log_c - log_l) / rng          # [0,1]
+        stds = 2.0 * pos - 1.0               # [-1,1]
+    elif method == "combo":
+        # 组件1：带方向的区间强度（做标准化）
+        z = (np.sign(C) * H)
+        z_std = z.rolling(norm_window, min_periods=norm_window).std()
+        comp1 = z / (z_std.replace(0.0, np.nan))
+        # 组件2：收盘位置分数
+        rng = H.replace(0.0, np.nan)
+        pos = (log_c - log_l) / rng
+        comp2 = 2.0 * pos - 1.0
+        stds = 0.5 * comp1 + 0.5 * comp2
+    else:
+        raise ValueError("method must be one of: 'signed_range', 'stoch_pos', 'combo'")
+
+    # 对 STDS 做短/长均线
+    short = stds.rolling(short_window, min_periods=short_window).mean()
+    long  = stds.rolling(long_window,  min_periods=long_window).mean()
+
+    # 生成持仓：金叉→+1，死叉→-1；其余沿用；窗口未满为 0
+    signal = pd.Series(0, index=price.index, dtype=int)
+    position = 0
+
+    for i in range(len(signal)):
+        if pd.isna(short.iloc[i]) or pd.isna(long.iloc[i]):
+            signal.iloc[i] = position
+            continue
+
+        if i > 0:
+            cross_up   = (short.iloc[i] >  long.iloc[i]) and (short.iloc[i-1] <= long.iloc[i-1])
+            cross_down = (short.iloc[i] <  long.iloc[i]) and (short.iloc[i-1] >= long.iloc[i-1])
+
+            if cross_up:
+                position = 1
+            elif cross_down:
+                position = -1
+
+        signal.iloc[i] = position
+
+    return signal
+
+#顺势指标
+def cci(price:pd.DataFrame,
+        window:int = 14,
+        threshold:float = 100):
+    """
+    基于 CCI 的顺势/反转交易信号（返回持仓信号）
+    - CCI > threshold → 看空 (-1)
+    - CCI < -threshold → 看多 (+1)
+    - 其他情况 → 保持上一次仓位
+
+    参数
+    ----
+    price : DataFrame, 必含 ["high","low","close"]
+    timeperiod : int, CCI 计算窗口
+    threshold : float, 阈值（常用 100）
+
+    返回
+    ----
+    pd.Series: 持仓信号（+1/-1，窗口未满为0）
+    """
+    required = {"high", "low", "close"}
+    if not required.issubset(price.columns):
+        raise ValueError(f"price 必须包含列：{required}")
+
+    if not price.index.is_monotonic_increasing:
+        price = price.sort_index()
+
+    high = price["high"].astype(float)
+    low = price["low"].astype(float)
+    close = price["close"].astype(float)
+
+    # 计算 CCI
+    cci_val = talib.CCI(high, low, close, timeperiod=window)
+
+    signal = pd.Series(0, index=price.index, dtype=int)
+    position = 0  # 当前持仓状态：0 无仓，1 多，-1 空
+
+    for i in range(len(close)):
+        if pd.isna(cci_val.iloc[i]):
+            signal.iloc[i] = position
+            continue
+
+        if cci_val.iloc[i] > threshold:
+            position = -1  # 看空
+        elif cci_val.iloc[i] < -threshold:
+            position = 1   # 看多
+
+        signal.iloc[i] = position
+
+    return signal
+#==========月度数据处理===========
 # 聚合为月度数据 - 为每个月计算价格涨跌情况
 
 # 聚合为月度数据 - 为每个月计算价格涨跌情况

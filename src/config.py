@@ -48,6 +48,7 @@ FUNC_MAP = {
     'MIDPOINT': generate_ma_signal,
     'TRIX': generate_ma_signal,
     'WMA': generate_ma_signal,
+    'MIDPRICE': generate_ma_signal,
     'MACD': macd_signal,
     'ROC_R': roc_r,
     'ROC_MOM': roc_mom,
@@ -56,7 +57,13 @@ FUNC_MAP = {
     'CMO': cmo_r,
     'Quantile': quantile_signal,
     'continuous': continuous_signal,
-    'continuous_r': continuous_r
+    'continuous_r': continuous_r,
+    'bollinger_atr_mom':bollinger_atr_mom,
+    'turtle_trading':turtle_trading,
+    'sar':sar,
+    'intramom':intramom,
+    'stds':stds,
+    'cci':cci
 }
 
 PARAMS_MAP = {
@@ -81,6 +88,8 @@ PARAMS_MAP = {
             'vfactor': [0.6, 0.8, 1]},
     'WMA': {"short_window": [3, 5, 10, 20, 30, 40, 50, 60, 120, 140, 160, 200],
             "long_window": [5, 10, 20, 30, 40, 50, 60, 80, 100, 120, 140, 160, 200], 'ma_type': ['WMA']},
+    'MIDPRICE':{"short_window": [3, 5, 10, 20, 30, 40, 50, 60, 120, 140, 160, 200],
+            "long_window": [5, 10, 20, 30, 40, 50, 60, 80, 100, 120, 140, 160, 200], 'ma_type': ['MIDPRICE']},
     'MACD': {"short_window": [7.8, 9, 10, 12, 13], "long_window": [24, 26, 30, 34, 40], "signalperiod": [6, 9, 12]},
     'ROC_R': {"window": [3, 5, 10, 20, 30, 40, 50, 60, 120, 140, 160, 200]},
     'ROC_MOM': {"window": [3, 5, 10, 20, 30, 40, 50, 60, 120, 140, 160, 200]},
@@ -91,7 +100,13 @@ PARAMS_MAP = {
             "middle": [0]},
     'Quantile': {"window": [20, 60, 90, 100, 150, 200, 250, 500]},
     'continuous': {"window": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]},
-    'continuous_r': {"window": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]}
+    'continuous_r': {"window": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]},
+    'bollinger_atr_mom':{"window":[3,5,10,20,30,40,50,60,120],"atr_mult_upper":[1,1.5,2],"atr_mult_lower":[1,1.5,2]},
+    'turtle_trading':{"window":[2,3,5,10,20,30,40,50,60,70,80,90,100,150,200,250]},
+    'sar':{"acceleration":[0.01,0.02,0.04,0.06,0.08,0.1,0.2,0.3,0.4,0.5]},
+    'intramom':{"threshold":[0.97,0.98,0.99,1,1.01,1.02,1.03]},
+    'stds':{"short_window":[3,5,10,20,30,40,50,60,120,140,160,200],"long_window":[5,10,20,30,40,50,60,80,100,120,140,160,200],"method":["signed_range","stoch_pos","combo"],"norm_window":[5,10,20,30,40,50,60]},
+    'cci':{"window":[3,5,10,20,30,40,50,60,120,140,160,200],"threshold":[80,100,120,140,160,180,200]}
 }
 
 PAIR_FACTORS = {}
