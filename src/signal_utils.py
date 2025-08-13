@@ -3,7 +3,7 @@ import numpy as np
 import talib
 
 #通道型布林带信号：最新价突破布林带上界发出做空信号，突破下界发出做多信号，最新价由上到下突破中轨，则平空；最新价由下到上突破中轨，则平多
-def bollinger_r(price, window, num_std_upper, num_std_lower):
+def bollinger_r(price, window, num_std_upper, num_std_lower, shift_for_exec = 0):
     """
     布林带信号生成
     :param price: pandas Series, 股票收盘价
@@ -12,7 +12,7 @@ def bollinger_r(price, window, num_std_upper, num_std_lower):
     :param num_std_lower: float, 下轨的标准差倍数
     :return: pandas Series, 信号值（1: 开多, -1: 开空, 2: 平多, -2: 平空, 0: 无操作）
     """
-    close = price["close"]
+    close = price["close"].astype(float)
     upperband, middleband, lowerband = talib.BBANDS(
         close,
         timeperiod=window,
@@ -20,6 +20,9 @@ def bollinger_r(price, window, num_std_upper, num_std_lower):
         nbdevdn=num_std_lower,
         matype=0
     )
+    upperband = upperband.shift(shift_for_exec)
+    middleband = middleband.shift(shift_for_exec)
+    lowerband = lowerband.shift(shift_for_exec)
 
     signal = pd.Series(0, index=close.index)
     current_position = 0
@@ -56,7 +59,7 @@ def bollinger_r(price, window, num_std_upper, num_std_lower):
 
 # ###################### 动量 ######################
 #动量型布林带信号：最新价突破布林带上界发出做多信号，突破下界发出做空信号，最新价由上到下突破中轨，则平多；最新价由下到上突破中轨，则平空
-def bollinger_mom(price, window, num_std_upper, num_std_lower):
+def bollinger_mom(price, window, num_std_upper, num_std_lower,shift_for_exec = 0):
     """
     动量布林带信号生成
     :param price: pandas Series, 股票收盘价
@@ -65,7 +68,7 @@ def bollinger_mom(price, window, num_std_upper, num_std_lower):
     :param num_std_lower: float, 下轨的标准差倍数
     :return: pandas Series, 信号值（1: 开多, -1: 开空, 2: 平多, -2: 平空, 0: 无操作）
     """
-    close = price["close"]
+    close = price["close"].astype(float)
     upperband, middleband, lowerband = talib.BBANDS(
         close,
         timeperiod=window,
@@ -73,6 +76,9 @@ def bollinger_mom(price, window, num_std_upper, num_std_lower):
         nbdevdn=num_std_lower,
         matype=0
     )
+    upperband = upperband.shift(shift_for_exec)
+    middleband = middleband.shift(shift_for_exec)
+    lowerband = lowerband.shift(shift_for_exec)
 
     signal = pd.Series(0, index=close.index)
     current_position = 0
@@ -527,16 +533,17 @@ def continuous_r(price, window):
     return signal
 
 #反转型 百分位信号：最新价百分位达到历史高点则做空，最新价百分位达到历史低点则做多。
-def quantile_signal(price, window):
+def quantile_signal(price, window, shift_for_exec = 1):
     """
     百分位信号生成 (Quantile Signal)
     :param price: pandas Series, 股票收盘价
     :param window: int, 滑动窗口大小，用于计算历史高点和低点的百分位
+    :param shift_for_exec: int, 用于计算百分位的偏移量
     :return: pandas Series, 信号值（1: 做多, -1: 做空, 0: 无信号）
     """
     close = price["close"]
-    rolling_max = close.rolling(window).max().shift(1)
-    rolling_min = close.rolling(window).min().shift(1)
+    rolling_max = close.rolling(window).max().shift(shift_for_exec)
+    rolling_min = close.rolling(window).min().shift(shift_for_exec)
     quantile = (close - rolling_min) / (rolling_max - rolling_min + 1e-8)  # 防零除
 
     signal = pd.Series(0, index=close.index)
@@ -578,8 +585,7 @@ def bollinger_atr_mom(price:pd.DataFrame,
     参数
     ----
     price : 必含列 ["high","low","close"]
-    window : 中轨 SMA 的窗口
-    atr_window : ATR 的窗口，默认与 window 相同
+    window : 中轨 SMA 的窗口，ATR 的窗口默认与 window 相同
     atr_mult_upper / atr_mult_lower : 上/下轨的 ATR 倍数
 
     返回
@@ -633,7 +639,8 @@ def bollinger_atr_mom(price:pd.DataFrame,
 
 #海龟交易法则：最新价超过唐安奇通道上轨后发出做多信号 1，低于唐安奇通道下轨发出做空信号-1
 def turtle_trading(price:pd.DataFrame,
-                    window:int = 20):
+                window:int = 20,
+                shift_for_exec:int = 1):
     """
     海龟交易法则（基于唐安奇通道）的动量持仓信号：
     - 收盘价 > 上轨：开多（持仓= +1）
@@ -645,6 +652,7 @@ def turtle_trading(price:pd.DataFrame,
     ----
     price : 必含列 ["high","low","close"]
     window : 唐安奇通道的回溯窗口
+    shift_for_exec : 执行信号的回溯窗口
 
     返回
     ----
@@ -658,8 +666,8 @@ def turtle_trading(price:pd.DataFrame,
     close = price["close"].astype(float)
 
     # 唐安奇通道
-    upperband = high.rolling(window=window, min_periods=window).max().shift(1)
-    lowerband = low.rolling(window=window, min_periods=window).min().shift(1)
+    upperband = high.rolling(window=window, min_periods=window).max().shift(shift_for_exec)
+    lowerband = low.rolling(window=window, min_periods=window).min().shift(shift_for_exec)
     middleband = (upperband + lowerband) / 2
 
     signal = pd.Series(0, index=close.index, dtype=int)
@@ -892,7 +900,7 @@ def stds(price: pd.DataFrame,
 
     return signal
 
-#顺势指标
+#顺势指标：当 CCI 大于 threshold，看空 (-1);小于 -threshold，看多 (+1);其他情况，保持上一次持仓
 def cci(price:pd.DataFrame,
         window:int = 14,
         threshold:float = 100):
