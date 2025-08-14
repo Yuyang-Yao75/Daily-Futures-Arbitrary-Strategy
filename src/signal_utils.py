@@ -1332,6 +1332,48 @@ def obv_ma_signal(price: pd.DataFrame,
 
     return signal
 
+#量价相关性
+def obv_price_corr(price: pd.DataFrame,
+        timeperiod: int = 20,
+        volume_method: str = "sub") -> pd.Series:
+    """
+    量价相关性信号：
+    - 先计算 OBV
+    - 计算 OBV 与收盘价的滚动 timeperiod 日相关系数
+    - 相关系数在 [0.4, 1] → 信号=  1
+      相关系数在 (-0.4, 0.4) → 信号= 0
+      相关系数在 [-1, -0.4] → 信号= -1
+
+    参数
+    ----
+    price : pd.DataFrame, 必须包含 "close","volume"
+    timeperiod : 滚动相关系数的窗口
+
+    返回
+    ----
+    pd.Series: 信号（1=多, -1=空, 0=观望）
+    """
+    if not {"close", f"volume_{volume_method}"}.issubset(price.columns):
+        raise ValueError("price 必须包含列：'close',f'volume_{volume_method}'")
+    if not price.index.is_monotonic_increasing:
+        price = price.sort_index()
+
+    close  = price["close"].astype(float)
+    volume = price[f"volume_{volume_method}"].astype(float)
+
+    # 1) 计算 OBV
+    obv = talib.OBV(close, volume)
+
+    # 2) 滚动相关系数
+    corr = close.rolling(timeperiod).corr(obv)
+
+    # 3) 信号映射
+    signal = pd.Series(0, index=close.index, dtype=int)
+    signal[(corr >= 0.85) & (corr <= 1.0)]  = 1
+    signal[(corr <  0.8) & (corr >= -1.0)] = -1
+
+    return signal
+
 #成交量加权价格仅限
 
 #==========月度数据处理===========

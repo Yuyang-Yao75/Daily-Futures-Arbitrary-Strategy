@@ -68,7 +68,8 @@ FUNC_MAP = {
     'ultosc_contrarian':ultosc_contrarian,
     'williams_r_contrarian':williams_r_contrarian,
     'chaikin':chaikin,
-    'obv_ma_signal':obv_ma_signal
+    'obv_ma_signal':obv_ma_signal,
+    'obv_price_corr':obv_price_corr,
 }
 
 PARAMS_MAP = {
@@ -118,6 +119,7 @@ PARAMS_MAP = {
     'chaikin':{"fastperiod":[3,5,10,20,30,40,50,60,120,140,160,200],"slowperiod":[3,5,10,20,30,40,50,60,120,140,160,200],"volume_method":["sub","abs","max","min"]},
     'vwap_signal':{"timeperiod":[3,5,10,20,30,40,50,60,120,140,160,200],"volume_method":["sub","abs","max","min"],"shift_for_exec":[0,1]},
     'obv_ma_signal':{"short_window":[3,5,10,20,30,40,50,60,120,140,160,200],"long_window":[3,5,10,20,30,40,50,60,120,140,160,200],"ma":["SMA","EMA"],"volume_method":["sub","abs","max","min"]},
+    'obv_price_corr':{"timeperiod":[3,5,10,20,30,40,50,60,120,140,160,200],"volume_method":["sub","abs","max","min"]},
 }
 
 PAIR_FACTORS = {}
