@@ -7,12 +7,13 @@ class CSVDataSource(DataSource):
     def __init__(self, csv_file=None, df=None):
         super().__init__()
         self.csv_file = csv_file
-        self.df = df.reset_index(drop=False)
+        self.df = df
         # Register custom columns in the CSV.
         pybroker.register_columns('position_signal')
 
     def _fetch_data(self, symbols, start_date, end_date, _timeframe, _adjust):
         if self.df is not None:
+            self.df = self.df.reset_index(drop=False)
             return self.df
         else:
             df = pd.read_csv(self.csv_file)
