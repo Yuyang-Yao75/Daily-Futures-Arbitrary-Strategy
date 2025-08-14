@@ -67,7 +67,8 @@ FUNC_MAP = {
     'kdj':kdj,
     'ultosc_contrarian':ultosc_contrarian,
     'williams_r_contrarian':williams_r_contrarian,
-    'chaikin':chaikin
+    'chaikin':chaikin,
+    'obv_ma_signal':obv_ma_signal
 }
 
 PARAMS_MAP = {
@@ -116,7 +117,7 @@ PARAMS_MAP = {
     'williams_r_contrarian':{"window":[3,5,10,20,30,40,50,60,120,140,160,200],"threshold":[1,3,5,7,9,11,13,15,17,19,21,23],"shift_for_exec":[0,1]},
     'chaikin':{"fastperiod":[3,5,10,20,30,40,50,60,120,140,160,200],"slowperiod":[3,5,10,20,30,40,50,60,120,140,160,200],"volume_method":["sub","abs","max","min"]},
     'vwap_signal':{"timeperiod":[3,5,10,20,30,40,50,60,120,140,160,200],"volume_method":["sub","abs","max","min"],"shift_for_exec":[0,1]},
-
+    'obv_ma_signal':{"short_window":[3,5,10,20,30,40,50,60,120,140,160,200],"long_window":[3,5,10,20,30,40,50,60,120,140,160,200],"ma":["SMA","EMA"],"volume_method":["sub","abs","max","min"]},
 }
 
 PAIR_FACTORS = {}

@@ -1275,6 +1275,63 @@ def vwma_signal(price: pd.DataFrame,
 
     return signal
 
+#能量潮指标
+def obv_ma_signal(price: pd.DataFrame,
+                  short_window: int = 10,
+                  long_window: int = 30,
+                  ma: str = "SMA",            # "SMA" 或 "EMA"
+                  volume_method: str = "sub"
+                 ) -> pd.Series:
+    """
+    能量潮(OBV)均线交叉信号（返回持仓信号）
+    - 计算：OBV = talib.OBV(close, volume)
+    - 短均线上穿长均线 → 做多(+1)
+    - 短均线下穿长均线 → 做空(-1)
+    - 其他保持上一持仓；窗口未满为 0
+    """
+    required = {"close", f"volume_{volume_method}"}
+    if not required.issubset(price.columns):
+        raise ValueError(f"price 必须包含列：{required}")
+    if not price.index.is_monotonic_increasing:
+        price = price.sort_index()
+    if short_window > long_window:
+        raise ValueError("短均线窗口必须小于等于长均线窗口")
+
+    close  = price["close"].astype(float)
+    volume = price[f"volume_{volume_method}"].astype(float)
+
+    # 1) 计算 OBV（累积的量价指标）
+    obv = talib.OBV(close, volume).astype(float)
+
+    # 2) 对 OBV 做短/长均线
+    ma_up = ma.upper()
+    if ma_up == "EMA":
+        short = obv.ewm(span=short_window, adjust=False).mean()
+        long  = obv.ewm(span=long_window,  adjust=False).mean()
+    else:  # SMA
+        short = obv.rolling(short_window, min_periods=short_window).mean()
+        long  = obv.rolling(long_window,  min_periods=long_window).mean()
+
+    # 3) 生成持仓信号：精确检测金叉/死叉，其他沿用
+    signal = pd.Series(0, index=price.index, dtype=int)
+    position = 0
+    for i in range(1, len(signal)):
+        if pd.isna(short.iloc[i]) or pd.isna(long.iloc[i]) or pd.isna(short.iloc[i-1]) or pd.isna(long.iloc[i-1]):
+            signal.iloc[i] = position
+            continue
+
+        cross_up   = (short.iloc[i] >  long.iloc[i]) and (short.iloc[i-1] <= long.iloc[i-1])
+        cross_down = (short.iloc[i] <  long.iloc[i]) and (short.iloc[i-1] >= long.iloc[i-1])
+
+        if cross_up:
+            position = 1
+        elif cross_down:
+            position = -1
+
+        signal.iloc[i] = position
+
+    return signal
+
 #成交量加权价格仅限
 
 #==========月度数据处理===========
