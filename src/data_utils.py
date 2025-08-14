@@ -285,6 +285,7 @@ def generate_ohlc(df_nv:pd.DataFrame,
         df['open'] = df['close'] - 0.01
         df['high'] = df['close'] + 0.01
         df['low'] = df['close'] - 0.02
+        df.set_index('date', inplace=True)
         return df
 
     close_col = f"{prefix}_close"
