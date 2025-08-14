@@ -239,8 +239,7 @@ def generate_ohlc(df_nv:pd.DataFrame,
                 prefix:str,
                 open_offset: float = -0.01,
                 high_offset: float = +0.01,
-                low_offset: float  = -0.02,
-                volume_method:str = 'sub')->pd.DataFrame:
+                low_offset: float  = -0.02)->pd.DataFrame:
     """
     从净值数据中提取以 {prefix}_ 前缀命名的列，生成 OHLC 表格。
     规则：
@@ -255,11 +254,11 @@ def generate_ohlc(df_nv:pd.DataFrame,
         符号前缀，例如 'IFIH'。
     open_offset, high_offset, low_offset : float
         当缺失对应列时，用 close 加（或减）该偏移量生成。
-    volume_method:sub 表示直接相减，abs 表示相减后取绝对值，max 表示取最大值，min 表示取最小值
     返回
     ----
     pd.DataFrame
         以日期为索引，包含 ['close','open','high','low'] 的表格。
+        volume_method:sub 表示直接相减，abs 表示相减后取绝对值，max 表示取最大值，min 表示取最小值
     """
     close_col = f"{prefix}_close"
     if close_col not in df_nv.columns:
@@ -297,7 +296,10 @@ def generate_ohlc(df_nv:pd.DataFrame,
     out["low"] = (df_nv[low_col].to_numpy()
                 if low_col in df_nv.columns
                 else out["close"] + low_offset)
-    out["volume"]=df_nv[f"{prefix}_volume_{volume_method}"].to_numpy()
+    out["volume_sub"]=df_nv[f"{prefix}_volume_sub"].to_numpy()
+    out["volume_abs"]=df_nv[f"{prefix}_volume_abs"].to_numpy()
+    out["volume_max"]=df_nv[f"{prefix}_volume_max"].to_numpy()
+    out["volume_min"]=df_nv[f"{prefix}_volume_min"].to_numpy()
 
     # 可选兜底，确保 OHLC 合理关系
     # out["high"] = out[["high", "open", "close"]].max(axis=1)
