@@ -1161,7 +1161,8 @@ def williams_r_contrarian(price: pd.DataFrame,
 def chaikin(price: pd.DataFrame,
                        fastperiod: int = 3,
                        slowperiod: int = 10,
-                       shift_for_exec: int = 0) -> pd.Series:
+                       shift_for_exec: int = 0,
+                       volume_method: str = "sub") -> pd.Series:
     """
     基于 Chaikin Oscillator (ADOSC) 的交易信号：
     - ADOSC > 0 → 做多 (+1)
@@ -1174,12 +1175,17 @@ def chaikin(price: pd.DataFrame,
     fastperiod : int，快线周期
     slowperiod : int，慢线周期
     shift_for_exec : 执行对齐（0=当日收盘执行，1=次日执行，防前视）
+    volume_method : str，成交量处理方式
+        - sub: 相减
+        - abs: 相减后取绝对值
+        - max: 取最大值
+        - min: 取最小值
 
     返回
     ----
     pd.Series: 持仓信号（+1/-1/0）
     """
-    required = {"high", "low", "close", "volume"}
+    required = {"high", "low", "close",f"volume_{volume_method}"}
     if not required.issubset(price.columns):
         raise ValueError(f"price 必须包含列：{required}")
 
@@ -1192,7 +1198,7 @@ def chaikin(price: pd.DataFrame,
     high = price["high"].astype(float)
     low = price["low"].astype(float)
     close = price["close"].astype(float)
-    volume = price["volume"].astype(float)
+    volume = price[f"volume_{volume_method}"].astype(float)
 
     adosc = talib.ADOSC(high, low, close, volume,
                         fastperiod=fastperiod,
@@ -1219,6 +1225,9 @@ def chaikin(price: pd.DataFrame,
         signal.iloc[i] = position
 
     return signal
+
+#成交量加权价格仅限
+
 #==========月度数据处理===========
 # 聚合为月度数据 - 为每个月计算价格涨跌情况
 
