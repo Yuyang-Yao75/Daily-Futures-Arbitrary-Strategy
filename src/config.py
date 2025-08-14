@@ -115,6 +115,7 @@ PARAMS_MAP = {
     'ultosc_contrarian':{"t1":[7,8,9,10,12,13],"t2":[14,16,18,20,26],"t3":[16,18,20,24,26,28],"threshold":[5,10,15,20,25,30],"shift_for_exec":[0,1]},
     'williams_r_contrarian':{"window":[3,5,10,20,30,40,50,60,120,140,160,200],"threshold":[1,3,5,7,9,11,13,15,17,19,21,23],"shift_for_exec":[0,1]},
     'chaikin':{"fastperiod":[3,5,10,20,30,40,50,60,120,140,160,200],"slowperiod":[3,5,10,20,30,40,50,60,120,140,160,200],"volume_method":["sub","abs","max","min"]},
+    'vwap_signal':{"timeperiod":[3,5,10,20,30,40,50,60,120,140,160,200],"volume_method":["sub","abs","max","min"],"shift_for_exec":[0,1]},
 
 }
 

@@ -1161,7 +1161,6 @@ def williams_r_contrarian(price: pd.DataFrame,
 def chaikin(price: pd.DataFrame,
                        fastperiod: int = 3,
                        slowperiod: int = 10,
-                       shift_for_exec: int = 0,
                        volume_method: str = "sub") -> pd.Series:
     """
     基于 Chaikin Oscillator (ADOSC) 的交易信号：
@@ -1204,9 +1203,6 @@ def chaikin(price: pd.DataFrame,
                         fastperiod=fastperiod,
                         slowperiod=slowperiod)
 
-    if shift_for_exec:
-        adosc = adosc.shift(shift_for_exec)
-
     signal = pd.Series(0, index=price.index, dtype=int)
     position = 0
 
@@ -1221,6 +1217,59 @@ def chaikin(price: pd.DataFrame,
         elif val < 0:
             position = -1
         # 0 值保持原仓位
+
+        signal.iloc[i] = position
+
+    return signal
+
+#成交量加权均线
+def vwma_signal(price: pd.DataFrame,
+                timeperiod: int = 20,
+                volume_method: str = "sub",
+                shift_for_exec: int = 0) -> pd.Series:
+    """
+    基于成交量加权移动均线（VWMA）的交易信号：
+    - 收盘价上穿 VWMA → 做多 (+1)
+    - 收盘价下穿 VWMA → 做空 (-1)
+    - 其余保持原仓位
+
+    参数
+    ----
+    price : 必含列 ["close", "volume"]
+    timeperiod : int，均线窗口
+    shift_for_exec : 执行对齐（0=当日收盘执行，1=次日执行）
+
+    返回
+    ----
+    pd.Series: 持仓信号（+1/-1/0）
+    """
+    required = {"close", f"volume_{volume_method}"}
+    if not required.issubset(price.columns):
+        raise ValueError(f"price 必须包含列：{required}")
+
+    close = price["close"].astype(float)
+    volume = price[f"volume_{volume_method}"].astype(float)
+
+    # 计算成交量加权移动均线
+    vwma = (close * volume).rolling(window=timeperiod).sum() / volume.rolling(window=timeperiod).sum()
+
+    if shift_for_exec:
+        vwma = vwma.shift(shift_for_exec)
+
+    signal = pd.Series(0, index=price.index, dtype=int)
+    position = 0
+
+    for i in range(1, len(close)):
+        if pd.isna(vwma.iloc[i]) or pd.isna(vwma.iloc[i - 1]):
+            signal.iloc[i] = position
+            continue
+
+        # 上穿均线 → 开多
+        if close.iloc[i] > vwma.iloc[i] and close.iloc[i - 1] <= vwma.iloc[i - 1]:
+            position = 1
+        # 下穿均线 → 开空
+        elif close.iloc[i] < vwma.iloc[i] and close.iloc[i - 1] >= vwma.iloc[i - 1]:
+            position = -1
 
         signal.iloc[i] = position
 
