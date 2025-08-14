@@ -275,6 +275,13 @@ def extract_concat_signals(
         return df_out
     # 1) 生成 OHLC
     df = generate_ohlc(futures_nv_df, pair).copy()
+    if not isinstance(df.index, pd.DatetimeIndex):
+        if 'date' in df.columns:
+            df['date'] = pd.to_datetime(df['date'])
+            df = df.set_index('date')
+        else:
+            # 如果没有 'date' 列，必须提供日期来源；否则无法做季节性（月）映射
+            raise ValueError("缺少 'date' 列，且索引不是 DatetimeIndex，无法使用 df.index.month。")
     # 2) 计算三路信号序列
     # -- basis
     b = basis_raw_df.copy()
