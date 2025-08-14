@@ -4,14 +4,18 @@ from pybroker.data import DataSource
 
 class CSVDataSource(DataSource):
 
-    def __init__(self, csv_file='IFIH_signal.csv'):
+    def __init__(self, csv_file=None, df=None):
         super().__init__()
         self.csv_file = csv_file
+        self.df = df
         # Register custom columns in the CSV.
         pybroker.register_columns('position_signal')
 
     def _fetch_data(self, symbols, start_date, end_date, _timeframe, _adjust):
-        df = pd.read_csv(self.csv_file)
+        if self.df is not None:
+            return self.df
+        else:
+            df = pd.read_csv(self.csv_file)
         df = df[df['symbol'].isin(symbols)]
         df['date'] = pd.to_datetime(df['date'])
         return df[(df['date'] >= start_date) & (df['date'] <= end_date)]

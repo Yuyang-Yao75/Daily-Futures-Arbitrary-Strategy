@@ -41,11 +41,11 @@ def _grid(param_space: Dict[str, Iterable]) -> List[Dict]:
 def _run_backtest(signal_df: pd.DataFrame, symbol: str, tag: str) -> pd.DataFrame:
     """Run pybroker backtest on a prepared signal DataFrame."""
     print(f"开始回测 {symbol} {tag}。")
-    os.makedirs(FACTOR_SELECTION_PATH, exist_ok=True)
-    csv_path = os.path.join(FACTOR_SELECTION_PATH, f"{symbol}_{tag}_signal.csv")
-    signal_df.to_csv(csv_path, index=True)
+    # os.makedirs(FACTOR_SELECTION_PATH, exist_ok=True)
+    # csv_path = os.path.join(FACTOR_SELECTION_PATH, f"{symbol}_{tag}_signal.csv")
+    # signal_df.to_csv(csv_path, index=True)
 
-    data_source = CSVDataSource(csv_file=csv_path)
+    data_source = CSVDataSource(df=signal_df)
     config = StrategyConfig(
         initial_cash=INITIAL_CASH,
         bars_per_year=BARS_PER_YEAR,
