@@ -7,7 +7,7 @@ class CSVDataSource(DataSource):
     def __init__(self, csv_file=None, df=None):
         super().__init__()
         self.csv_file = csv_file
-        self.df = df
+        self.df = df.reset_index(drop=False)
         # Register custom columns in the CSV.
         pybroker.register_columns('position_signal')
 
