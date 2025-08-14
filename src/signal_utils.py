@@ -137,10 +137,10 @@ def roc_mom(price, window):
             current_position = 0
 
         # 开新仓逻辑
-        if roc[i] > 0 and current_position != 1:
+        if roc.iloc[i] > 0 and current_position != 1:
             signal.iloc[i] = 1
             current_position = 1
-        elif roc[i] < 0 and current_position != -1:
+        elif roc.iloc[i] < 0 and current_position != -1:
             signal.iloc[i] = -1
             current_position = -1
         else:
