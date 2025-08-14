@@ -210,11 +210,9 @@ def select_factors(
 
 if __name__ == "__main__":  # pragma: no cover - usage example
     from config import INDEX_DATA
-
+    from signal_utils import *
     index_df = pd.read_csv(INDEX_DATA, parse_dates=["date"]).set_index("date")
     index_nv = get_nv_data(index_df, "index")
-
-    from signal_utils import *
     for symbol in AVAILABLE_PAIRS:
         if symbol == "IMIC":
             continue
