@@ -1157,6 +1157,68 @@ def williams_r_contrarian(price: pd.DataFrame,
         signal.iloc[i] = position
 
     return signal
+#嘉庆指标
+def chaikin(price: pd.DataFrame,
+                       fastperiod: int = 3,
+                       slowperiod: int = 10,
+                       shift_for_exec: int = 0) -> pd.Series:
+    """
+    基于 Chaikin Oscillator (ADOSC) 的交易信号：
+    - ADOSC > 0 → 做多 (+1)
+    - ADOSC < 0 → 做空 (-1)
+    - ADOSC = 0 → 保持原仓位
+
+    参数
+    ----
+    price : 必含列 ["high","low","close","volume"]
+    fastperiod : int，快线周期
+    slowperiod : int，慢线周期
+    shift_for_exec : 执行对齐（0=当日收盘执行，1=次日执行，防前视）
+
+    返回
+    ----
+    pd.Series: 持仓信号（+1/-1/0）
+    """
+    required = {"high", "low", "close", "volume"}
+    if not required.issubset(price.columns):
+        raise ValueError(f"price 必须包含列：{required}")
+
+    if not price.index.is_monotonic_increasing:
+        price = price.sort_index()
+
+    if fastperiod > slowperiod:
+        return pd.Series(0, index=price.index)
+
+    high = price["high"].astype(float)
+    low = price["low"].astype(float)
+    close = price["close"].astype(float)
+    volume = price["volume"].astype(float)
+
+    adosc = talib.ADOSC(high, low, close, volume,
+                        fastperiod=fastperiod,
+                        slowperiod=slowperiod)
+
+    if shift_for_exec:
+        adosc = adosc.shift(shift_for_exec)
+
+    signal = pd.Series(0, index=price.index, dtype=int)
+    position = 0
+
+    for i in range(len(close)):
+        val = adosc.iloc[i]
+        if pd.isna(val):
+            signal.iloc[i] = position
+            continue
+
+        if val > 0:
+            position = 1
+        elif val < 0:
+            position = -1
+        # 0 值保持原仓位
+
+        signal.iloc[i] = position
+
+    return signal
 #==========月度数据处理===========
 # 聚合为月度数据 - 为每个月计算价格涨跌情况
 
