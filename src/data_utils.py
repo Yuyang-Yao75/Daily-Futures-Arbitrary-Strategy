@@ -260,9 +260,38 @@ def generate_ohlc(df_nv:pd.DataFrame,
         以日期为索引，包含 ['close','open','high','low'] 的表格。
         volume_method:sub 表示直接相减，abs 表示相减后取绝对值，max 表示取最大值，min 表示取最小值
     """
+
+    # 目前由于修改了数据格式，generate_ohlc 函数无法实现对期权数据的提取，因此使用 old_generate_ohlc实现对期权数据的提取，后续待修改#todo
+    def old_generate_ohlc(df_nv: pd.DataFrame, prefix: str) -> pd.DataFrame:
+        """
+        从净值数据中提取以指定前缀开头的列，并生成 OHLC 表格。
+
+        参数：
+        df_nv (pd.DataFrame)：以时间索引的净值表，包含如 'IFIH_index_nv'、'IFIH_futures_nv' 等
+        prefix (str)        ：要模糊搜索的列前缀，例如 'IFIH'
+
+        返回：
+        pd.DataFrame：包含 ['date','close','open','high','low'] 的新表格
+        """
+        # 在列名中进行模糊搜索
+        matched_cols = [col for col in df_nv.columns if col.startswith(prefix)]
+        if not matched_cols:
+            raise ValueError(f"没有找到以 '{prefix}' 开头的列")
+        # 如果有多个匹配，默认使用第一个
+        target_col = matched_cols[0]
+        # 生成 OHLC 表格
+        df = df_nv[[target_col]].copy().reset_index()
+        df.rename(columns={target_col: 'close'}, inplace=True)
+        df['open'] = df['close'] - 0.01
+        df['high'] = df['close'] + 0.01
+        df['low'] = df['close'] - 0.02
+        return df
+
     close_col = f"{prefix}_close"
     if close_col not in df_nv.columns:
-        raise ValueError(f"缺少必要列：{close_col}")
+        # raise ValueError(f"缺少必要列：{close_col}")
+        print(f"缺少必要列：{close_col}")
+        return old_generate_ohlc(df_nv, prefix)
 
     vol_cols = [col for col in df_nv.columns if col.startswith(f"{prefix}_volume")]
     if not vol_cols:
