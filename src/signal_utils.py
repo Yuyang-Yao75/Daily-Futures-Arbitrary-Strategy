@@ -1354,7 +1354,7 @@ def obv_price_corr(price: pd.DataFrame,
     pd.Series: 信号（1=多, -1=空, 0=观望）
     """
     if not {"close", f"volume_{volume_method}"}.issubset(price.columns):
-        raise ValueError("price 必须包含列：'close',f'volume_{volume_method}'")
+        raise ValueError(f"price 必须包含列：'close','volume_{volume_method}'")
     if not price.index.is_monotonic_increasing:
         price = price.sort_index()
 
@@ -1374,6 +1374,46 @@ def obv_price_corr(price: pd.DataFrame,
 
     return signal
 
+#资金流量指数
+def mfi_signal(price: pd.DataFrame,
+               timeperiod: int = 14,
+               threshold: float = 20,
+               volume_method: str="sub") -> pd.Series:
+    """
+    资金流量指数（MFI）信号：
+    - MFI > 100 - threshold → 看空（-1）
+    - MFI < threshold → 看多（+1）
+    - 其他情况 → 观望（0）
+
+    参数
+    ----
+    price : pd.DataFrame, 必须包含 "high","low","close","volume"
+    timeperiod : MFI 计算窗口
+    threshold : 超买/超卖阈值，默认 20
+
+    返回
+    ----
+    pd.Series: 信号（1=多, -1=空, 0=观望）
+    """
+    if not {"high", "low", "close", f"volume_{volume_method}"}.issubset(price.columns):
+        raise ValueError(f"price 必须包含列：'high','low','close','volume_{volume_method}'")
+    if not price.index.is_monotonic_increasing:
+        price = price.sort_index()
+
+    high = price["high"].astype(float)
+    low = price["low"].astype(float)
+    close = price["close"].astype(float)
+    volume = price[f"volume_{volume_method}"].astype(float)
+
+    # 计算 MFI
+    mfi = talib.MFI(high, low, close, volume, timeperiod=timeperiod)
+
+    # 初始化信号
+    signal = pd.Series(0, index=price.index, dtype=int)
+    signal[mfi > 100 - threshold] = -1  # 超买 → 做空
+    signal[mfi < threshold] = 1         # 超卖 → 做多
+
+    return signal
 #成交量加权价格仅限
 
 #==========月度数据处理===========
