@@ -1295,7 +1295,7 @@ def obv_ma_signal(price: pd.DataFrame,
     if not price.index.is_monotonic_increasing:
         price = price.sort_index()
     if short_window > long_window:
-        raise ValueError("短均线窗口必须小于等于长均线窗口")
+        return pd.Series(0, index=price.index)
 
     close  = price["close"].astype(float)
     volume = price[f"volume_{volume_method}"].astype(float)
