@@ -141,7 +141,7 @@ def generate_all_technical_signals(
 
 #===================季节性信号===================
 # 计算季节性信号和权重
-def calculate_seasonal_signal(index_nv_df, pair, start_year=2010, end_year=START_DATE.year-1):
+def calculate_seasonal_signal(index_nv_df, pair, start_year=2010, end_year=START_DATE.year):
     if search_file_recursive(SIGNAL_DATA_PATH, f'{pair}_raw_seasonal_signal.csv'):
         df_out = pd.read_csv(os.path.join(SIGNAL_DATA_PATH, f'{SIGNAL_DATA_PATH}/{pair}_raw_seasonal_signal.csv'))
         return df_out
@@ -178,7 +178,7 @@ def generate_all_seasonal_signal(
             index_nv_df: pd.DataFrame,
             pairs: list = AVAILABLE_PAIRS,
             start_year: int = 2010,
-            end_year: int = datetime.now().year - 1
+            end_year: int = START_DATE.year
     ) -> Dict[str, pd.DataFrame]:
     """
     批量为每个 pair 生成季节性因子信号，并返回一个字典：
