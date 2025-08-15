@@ -214,8 +214,6 @@ if __name__ == "__main__":  # pragma: no cover - usage example
     index_df = pd.read_csv(INDEX_DATA, parse_dates=["date"]).set_index("date")
     index_nv = get_nv_data(index_df, "index")
     for symbol in AVAILABLE_PAIRS:
-        if symbol == "IMIC":
-            continue
         print(f"\n{'=' * 50}")
         print(f"开始因子选择: {symbol}")
         select_factors(index_nv, symbol, FUNC_MAP, PARAMS_MAP,metrics_to_optimize=["sharpe","sortino","calmar","max_drawdown_pct","annual_return_pct","profit_factor","win_rate"])
