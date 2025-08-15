@@ -218,4 +218,4 @@ if __name__ == "__main__":  # pragma: no cover - usage example
             continue
         print(f"\n{'=' * 50}")
         print(f"开始因子选择: {symbol}")
-        select_factors(index_nv, symbol, FUNC_MAP, PARAMS_MAP)
+        select_factors(index_nv, symbol, FUNC_MAP, PARAMS_MAP,metrics_to_optimize=["sharpe","sortino","calmar","max_drawdown_pct","annual_return_pct","profit_factor","win_rate"])
