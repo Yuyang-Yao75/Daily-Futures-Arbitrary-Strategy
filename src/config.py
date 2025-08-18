@@ -126,31 +126,32 @@ PARAMS_MAP = {
 
 
 PAIR_FACTORS = {}
+
 for pair in AVAILABLE_PAIRS:
-    # 在 FACTOR_SELECTION_PATH 下查找以 "{pair}_selected_factors" 开头的文件
     pattern = os.path.join(FACTOR_SELECTION_PATH, f"{pair}_selected_factors*")
     matches = glob(pattern)
     if not matches:
-        # 如果没有找到文件，跳过
         continue
-    # 只取第一个文件
+
     filepath = matches[0]
     with open(filepath, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
     od = OrderedDict()
     for factor_name, info in data.items():
-        func_name = info.get('func', None)
-        params = info.get('params', {})
-        func = FUNC_MAP.get(func_name)
-        if func is None:
-            # 如果没在 FUNC_MAP 中找到对应函数，也可以尝试 globals() 获取
-            func = globals().get(func_name)
+        func_name = info.get('func')
+        params      = info.get('params', {})
+        direction   = info.get('direction', 1)   # 1 做多 / -1 做空，缺省做多
+
+        func = FUNC_MAP.get(func_name) or globals().get(func_name)
         if not callable(func):
-            # 如果依然没找到合法函数，跳过
             continue
-        od[factor_name] = (func, params)
-        PAIR_FACTORS[pair] = od
 
+        # 原来：(func, params)
+        # 现在：(func, params, direction)
+        od[factor_name] = (func, params, direction)
 
+    PAIR_FACTORS[pair] = od
+
+a=1
 
