@@ -105,7 +105,7 @@ def calculate_technical_signal(
     # 2）按配置循环调用，每次生成一列“{因子名}_signal”
     signal_cols = []
     for name,(func,params,direction) in factors.items():
-        col = f"{name}_signal"
+        col = f"{name}_signal" if direction == 1 else f"-{name}_signal"
         df[col] = func(price, **params)*direction
         signal_cols.append(col)
     # 3）综合仓位信号
