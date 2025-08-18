@@ -153,5 +153,3 @@ for pair in AVAILABLE_PAIRS:
 
     PAIR_FACTORS[pair] = od
 
-a=1
-
