@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this project, please cite it as below."
+title: "Option Attribution Analysis"
+abstract: "A toolkit for option-portfolio attribution analysis."
+authors:
+  - family-names: Yao
+    given-names: Yuyang
+    email: yyyao75@163.com
+    orcid: ""
+repository-code: "https://github.com/Yuyang-Yao75/Attribution-Analysis-of-Options-Trading"
+license: "PolyForm-Noncommercial-1.0.0"
+version: "0.1.0"
+date-released: "2025-08-21"
