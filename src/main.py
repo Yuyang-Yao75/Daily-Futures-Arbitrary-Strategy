@@ -1,3 +1,5 @@
+# Copyright (c) 2025 Yuyang Yao
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 from pybroker import Strategy, StrategyConfig
 from strategy_utils import *
 from backtest_utils import *

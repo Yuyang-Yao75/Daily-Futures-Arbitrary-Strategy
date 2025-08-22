@@ -1,3 +1,5 @@
+# Copyright (c) 2025 Yuyang Yao
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 from data_utils import *
 from config import *
 from datetime import datetime

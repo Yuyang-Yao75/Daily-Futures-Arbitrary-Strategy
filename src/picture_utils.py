@@ -1,3 +1,5 @@
+# Copyright (c) 2025 Yuyang Yao
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import os
 import pandas as pd
 import matplotlib.pyplot as plt

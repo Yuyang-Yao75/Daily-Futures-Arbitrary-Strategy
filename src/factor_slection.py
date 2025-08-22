@@ -1,3 +1,5 @@
+# Copyright (c) 2025 Yuyang Yao
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 """用于因素选择和参数优化的工具。
 此模块提供了辅助函数，用于在不同的参数组合下对技术因素进行网格搜索，对每个配置进行 pybroker 回测，并保留具有稳健夏普比率的配置。
 所选因素的结果以 JSON 格式保存，以便能够将其在配置文件中重复使用。

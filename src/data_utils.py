@@ -1,3 +1,5 @@
+# Copyright (c) 2025 Yuyang Yao
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import os
 import pandas as pd
 from datetime import datetime
@@ -7,7 +9,7 @@ from config import CODE_MAP,AVAILABLE_PAIRS,RAW_DATA_PATH,RESULT_PATH,INDEX_DATA
 
 #====================== 原始数据读取======================
 # def ths_login():#todo
-#     ret = THS_iFinDLogin('ghyjsxs207', '505933')
+#     ret = THS_iFinDLogin('aaaaa', 'aaaaa')
 #     print(ret)
 #     if ret != 0:
 #         raise  RuntimeError("登陆失败")
