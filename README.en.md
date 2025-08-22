@@ -1,6 +1,6 @@
 # Cross-Species Index Futures Arbitrage Strategy: Replication and Optimization
 
-[![EN](https://img.shields.io/badge/lang-English-blue.svg)](./README.en.md)
+[![EN](https://img.shields.io/badge/lang-English-blue.svg)](README.en.md)
 [![CN](https://img.shields.io/badge/lang-中文-red.svg)](./README.md)
 
 > **License**
