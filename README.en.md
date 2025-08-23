@@ -119,3 +119,4 @@ python src/main.py
 * Some research results and data are not fully uploaded — please reach out via email for inquiries.
 * For questions or collaboration, contact: **[yyyao75@163.com](mailto:yyyao75@163.com)**
 
+>Note: This project is currently in a stage of partial completion, and there will be no updates in the short term. Honestly, I am well aware that the code still has many shortcomings in terms of structure, efficiency, and complexity. If you notice any issues while reading or using it, I sincerely welcome your feedback and criticism. I firmly believe that open exchange and genuine sharing are the foundation of mutual growth, and that is the true value of this work.
